@@ -13,7 +13,9 @@ dotnet_diagnostic.SA1101.severity = none # nao usar 'this.' (bate com dotnet_sty
 
 csharp_prefer_braces = true:warning
 
+# Atributo sempre na propria linha, separado da variavel/declaracao (inclusive os "simples"/curtos).
 resharper_place_attribute_on_same_line = false
+resharper_place_simple_attribute_on_same_line = false
 resharper_braces_for_ifelse = required
 resharper_braces_for_for = required
 resharper_braces_for_foreach = required

@@ -11,5 +11,6 @@
     <Project Path="tests/Financarias.Application.UnitTests/Financarias.Application.UnitTests.csproj" />
     <Project Path="tests/Financarias.Domain.UnitTests/Financarias.Domain.UnitTests.csproj" />
     <Project Path="tests/Financarias.Infrastructure.IntegrationTests/Financarias.Infrastructure.IntegrationTests.csproj" />
+    <Project Path="tests/Financarias.Integrations.IntegrationTests/Financarias.Integrations.IntegrationTests.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Financarias.Api/Financarias.Api.csproj" />
+    <Project Path="src/Financarias.Application/Financarias.Application.csproj" />
+    <Project Path="src/Financarias.Domain/Financarias.Domain.csproj" />
+    <Project Path="src/Financarias.Infrastructure/Financarias.Infrastructure.csproj" />
+    <Project Path="src/Financarias.Integrations/Financarias.Integrations.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Financarias.Api.FunctionalTests/Financarias.Api.FunctionalTests.csproj" />
+    <Project Path="tests/Financarias.Application.UnitTests/Financarias.Application.UnitTests.csproj" />
+    <Project Path="tests/Financarias.Domain.UnitTests/Financarias.Domain.UnitTests.csproj" />
+    <Project Path="tests/Financarias.Infrastructure.IntegrationTests/Financarias.Infrastructure.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

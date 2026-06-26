@@ -21,7 +21,7 @@ public sealed partial record Cep
     /// <summary>Cria um <see cref="Cep"/> a partir de uma entrada já validada; lança se inválida.</summary>
     public static Cep Create(string? input)
     {
-        return !TryCreate(input, out var cep) ? throw new ArgumentException($"CEP inválido: '{input}'. Esperados 8 dígitos.", nameof(input)) : cep;
+        return !TryCreate(input, out var cep) ? throw new InvalidCepException(input) : cep;
     }
 
     /// <summary>Tenta criar um <see cref="Cep"/>; retorna false em vez de lançar quando a entrada é inválida.</summary>

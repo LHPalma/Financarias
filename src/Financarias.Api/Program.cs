@@ -21,7 +21,8 @@ builder.Services.AddIntegrations(builder.Configuration);
 
 builder.Services
     .AddGraphQLServer()
-    .AddQueryType<Query>();
+    .AddQueryType<Query>()
+    .AddErrorFilter<DomainErrorFilter>();
 
 var app = builder.Build();
 

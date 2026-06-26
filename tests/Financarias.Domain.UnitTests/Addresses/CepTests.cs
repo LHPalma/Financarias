@@ -1,4 +1,4 @@
-﻿using Financarias.Domain.Addresses;
+using Financarias.Domain.Addresses;
 
 namespace Financarias.Domain.UnitTests.Addresses;
 
@@ -30,17 +30,17 @@ public class CepTests
         Assert.Equal("01001-000", formatted);
     }
 
-    [Theory(DisplayName = "Lança ArgumentException para entrada inválida")]
+    [Theory(DisplayName = "Lança InvalidCepException para entrada inválida")]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("0100100")]     // 7 dígitos
     [InlineData("010010000")]   // 9 dígitos
     [InlineData("01001-00a")]   // contém letra
-    public void Create_WithInvalidInput_ThrowsArgumentException(string? input)
+    public void Create_WithInvalidInput_ThrowsInvalidCepException(string? input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => Cep.Create(input));
+        Assert.Throws<InvalidCepException>(() => Cep.Create(input));
     }
 
     [Theory(DisplayName = "TryCreate retorna true e produz o CEP para entrada válida")]

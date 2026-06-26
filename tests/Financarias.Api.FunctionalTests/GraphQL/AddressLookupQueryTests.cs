@@ -82,4 +82,21 @@ public class AddressLookupQueryTests : IClassFixture<WebApplicationFactory<Progr
         var addressLookup = document.RootElement.GetProperty("data").GetProperty("addressLookup");
         Assert.Equal(JsonValueKind.Null, addressLookup.ValueKind);
     }
+
+    [Fact(DisplayName = "Query addressLookup retorna erro com code address.cep.invalid para CEP inválido")]
+    public async Task AddressLookup_WithInvalidCep_ReturnsDomainErrorCode()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        var request = new { query = "{ addressLookup(cep: \"123\") { street } }" };
+
+        // Act
+        var response = await client.PostAsJsonAsync("/graphql", request);
+
+        // Assert
+        var raw = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(raw);
+        var error = document.RootElement.GetProperty("errors")[0];
+        Assert.Equal("address.cep.invalid", error.GetProperty("extensions").GetProperty("code").GetString());
+    }
 }

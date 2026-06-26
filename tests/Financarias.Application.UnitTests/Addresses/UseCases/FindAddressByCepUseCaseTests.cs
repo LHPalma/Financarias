@@ -34,11 +34,11 @@ public class FindAddressByCepUseCaseTests
         Assert.Same(expected, result);
     }
 
-    [Fact(DisplayName = "Lança ArgumentException e não chama o handler para CEP inválido")]
+    [Fact(DisplayName = "Lança InvalidCepException e não chama o handler para CEP inválido")]
     public async Task Execute_WithInvalidCep_ThrowsAndDoesNotCallHandler()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _useCase.ExecuteAsync("123"));
+        await Assert.ThrowsAsync<InvalidCepException>(() => _useCase.ExecuteAsync("123"));
         await _handler.DidNotReceive().HandleAsync(Arg.Any<FindAddressByCepQuery>(), Arg.Any<CancellationToken>());
     }
 }

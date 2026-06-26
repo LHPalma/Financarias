@@ -1,4 +1,5 @@
-﻿using Financarias.Integrations.Addresses.ViaCep.Clients;
+﻿using Financarias.Domain.Addresses;
+using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Addresses.ViaCep.DTOs.Responses;
 using Financarias.Integrations.Addresses.ViaCep.Providers;
 using Microsoft.Extensions.Logging;
@@ -33,7 +34,7 @@ public class ViaCepProviderTests
                 null));
 
         // Act
-        var result = await _provider.FindAddressAsync("01001000");
+        var result = await _provider.FindAddressAsync(Cep.Create("01001000"));
 
         // Assert
         Assert.NotNull(result);
@@ -52,7 +53,7 @@ public class ViaCepProviderTests
             .Returns(new ViaCepResponse(null, null, null, null, null, null, true));
 
         // Act
-        var result = await _provider.FindAddressAsync("00000000");
+        var result = await _provider.FindAddressAsync(Cep.Create("00000000"));
 
         // Assert
         Assert.Null(result);
@@ -66,7 +67,7 @@ public class ViaCepProviderTests
             .ThrowsAsync(new HttpRequestException("boom"));
 
         // Act
-        var result = await _provider.FindAddressAsync("01001000");
+        var result = await _provider.FindAddressAsync(Cep.Create("01001000"));
 
         // Assert
         Assert.Null(result);

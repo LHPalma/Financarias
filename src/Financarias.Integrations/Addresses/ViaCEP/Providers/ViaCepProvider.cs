@@ -1,4 +1,5 @@
 ﻿using Financarias.Application.Addresses;
+using Financarias.Domain.Addresses;
 using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Microsoft.Extensions.Logging;
 
@@ -11,13 +12,13 @@ public sealed class ViaCepProvider(
 {
     public string ProviderName => "ViaCEP";
 
-    public async Task<AddressLookupResult?> FindAddressAsync(string cep, CancellationToken cancellationToken = default)
+    public async Task<AddressLookupResult?> FindAddressAsync(Cep cep, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await client.FindAddressByCepAsync(cep, cancellationToken);
+            var response = await client.FindAddressByCepAsync(cep.Value, cancellationToken);
 
-            if (response is null || response.Erro == true)
+            if (response.Erro == true)
             {
                 logger.LogWarning($"Cep {cep} not found");
                 return null;

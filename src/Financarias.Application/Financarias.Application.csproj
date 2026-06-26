@@ -1,7 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <ProjectReference Include="..\Financarias.Domain\Financarias.Domain.csproj"/>
+        <ProjectReference Include="..\Financarias.Domain\Financarias.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
     </ItemGroup>
 
     <PropertyGroup>

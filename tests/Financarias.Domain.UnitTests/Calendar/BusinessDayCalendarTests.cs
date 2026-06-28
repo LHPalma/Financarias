@@ -1,6 +1,6 @@
-using Financarias.Domain.MarketData.Calendar;
+using Financarias.Domain.Calendar;
 
-namespace Financarias.Domain.UnitTests.MarketData.Calendar;
+namespace Financarias.Domain.UnitTests.Calendar;
 
 public class BusinessDayCalendarTests
 {

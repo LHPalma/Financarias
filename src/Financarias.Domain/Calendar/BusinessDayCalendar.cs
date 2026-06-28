@@ -1,6 +1,6 @@
 ﻿using Financarias.Domain.Analytics;
 
-namespace Financarias.Domain.MarketData.Calendar;
+namespace Financarias.Domain.Calendar;
 
 public static class BusinessDayCalendar
 {

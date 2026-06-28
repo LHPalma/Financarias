@@ -6,6 +6,7 @@
 
     <ItemGroup>
       <PackageReference Include="Ardalis.Specification.EntityFrameworkCore" />
+      <PackageReference Include="EFCore.NamingConventions" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     </ItemGroup>
 

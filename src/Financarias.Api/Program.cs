@@ -1,5 +1,6 @@
 using Financarias.Api.GraphQL;
 using Financarias.Application;
+using Financarias.Infrastructure;
 using Financarias.Integrations;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddIntegrations(builder.Configuration);
 
 builder.Services

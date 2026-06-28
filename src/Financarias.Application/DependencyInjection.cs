@@ -24,6 +24,8 @@ public static class DependencyInjection
         services.AddScoped<ICountBusinessDaysUseCase, CountBusinessDaysUseCase>();
         services.AddScoped<IQueryHandler<FindHolidaysInRangeQuery, IReadOnlySet<DateOnly>>, FindHolidaysInRangeQueryHandler>();
 
+        services.AddScoped<IImportHolidaysUseCase, ImportHolidaysUseCase>();
+
         return services;
     }
 }

@@ -11,6 +11,14 @@ dotnet_diagnostic.SA1633.severity = none
 dotnet_diagnostic.SA1313.severity = none # records: parametros posicionais sao PascalCase
 dotnet_diagnostic.SA1101.severity = none # nao usar 'this.' (bate com dotnet_style_qualification_for_* = false)
 
+# StyleCop x convencoes adotadas: silenciados por conflitarem com o estilo do projeto
+dotnet_diagnostic.SA1009.severity = none # ')' em linha propria do primary constructor multilinha
+dotnet_diagnostic.SA1111.severity = none # ')' do primary ctor multilinha nao fica na linha do ultimo param
+dotnet_diagnostic.SA1008.severity = none # espaco antes de '(' em pattern/cast (ex.: 'is not (')
+dotnet_diagnostic.SA1025.severity = none # alinhamento de switch expressions (resharper_int_align_switch_expressions)
+dotnet_diagnostic.SA0001.severity = none # XML doc analysis off de proposito (GenerateDocumentationFile false)
+dotnet_diagnostic.SA1106.severity = none # ';' nas exceptions com primary ctor sem corpo (estilo terso)
+
 csharp_prefer_braces = true:warning
 
 # Atributo sempre na propria linha, separado da variavel/declaracao (inclusive os "simples"/curtos).

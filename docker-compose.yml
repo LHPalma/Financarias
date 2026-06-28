@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: financarias-postgres
+    environment:
+      POSTGRES_DB: financarias
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - financarias-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financarias"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  financarias-pgdata:

@@ -5,6 +5,8 @@ using Financarias.Application.Analytics;
 using Financarias.Application.Analytics.Queries;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Common.Messaging;
+using Financarias.Application.Holidays.Queries;
+using Financarias.Application.Holidays.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Financarias.Application;
@@ -18,6 +20,9 @@ public static class DependencyInjection
 
         services.AddScoped<ISimulateScenarioUseCase, SimulateScenarioUseCase>();
         services.AddScoped<IQueryHandler<SimulateScenarioQuery, ScenarioResult>, SimulateScenarioQueryHandler>();
+
+        services.AddScoped<ICountBusinessDaysUseCase, CountBusinessDaysUseCase>();
+        services.AddScoped<IQueryHandler<FindHolidaysInRangeQuery, IReadOnlySet<DateOnly>>, FindHolidaysInRangeQueryHandler>();
 
         return services;
     }

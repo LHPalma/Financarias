@@ -1,7 +1,9 @@
 using Financarias.Api.GraphQL;
 using Financarias.Application;
 using Financarias.Infrastructure;
+using Financarias.Infrastructure.Persistence;
 using Financarias.Integrations;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,14 @@ builder.Services
     .AddErrorFilter<DomainErrorFilter>();
 
 var app = builder.Build();
+
+// Apply pending EF migrations on startup (dev convenience only).
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<FinancariasDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

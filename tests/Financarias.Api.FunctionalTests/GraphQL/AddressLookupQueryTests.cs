@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Financarias.Application.Addresses;
 using Financarias.Domain.Addresses;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +21,9 @@ public class AddressLookupQueryTests : IClassFixture<WebApplicationFactory<Progr
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
+            // Non-Development env so startup auto-migration is skipped (keeps these tests offline/hermetic).
+            builder.UseEnvironment("Testing");
+
             // Guarantees AddIntegrations does not fail at startup regardless of content root.
             builder.ConfigureAppConfiguration((_, config) =>
                 config.AddInMemoryCollection(new Dictionary<string, string?>

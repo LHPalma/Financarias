@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using Financarias.Application.Common.Persistence;
-using Financarias.Domain.Holidays;
+using Financarias.Domain.Holidays.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Financarias.Infrastructure.Persistence;

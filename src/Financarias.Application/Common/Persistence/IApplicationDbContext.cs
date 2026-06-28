@@ -1,4 +1,4 @@
-﻿using Financarias.Domain.Holidays;
+﻿using Financarias.Domain.Holidays.Models;
 
 namespace Financarias.Application.Common.Persistence;
 

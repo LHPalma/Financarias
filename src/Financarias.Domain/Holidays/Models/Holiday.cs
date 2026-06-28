@@ -1,7 +1,7 @@
 using Financarias.Domain.Common;
 using Financarias.Domain.Holidays.Exceptions;
 
-namespace Financarias.Domain.Holidays;
+namespace Financarias.Domain.Holidays.Models;
 
 public sealed class Holiday : BaseEntity<long>, IAggregateRoot
 {

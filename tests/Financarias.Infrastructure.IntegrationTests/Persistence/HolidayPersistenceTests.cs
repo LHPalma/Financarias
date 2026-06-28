@@ -1,4 +1,5 @@
 using Financarias.Domain.Holidays;
+using Financarias.Domain.Holidays.Models;
 using Financarias.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;

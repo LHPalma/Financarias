@@ -1,6 +1,8 @@
 ﻿using Financarias.Application.Addresses;
+using Financarias.Application.Holidays.Import;
 using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Addresses.ViaCep.Providers;
+using Financarias.Integrations.Anbima.Holidays;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
@@ -19,6 +21,9 @@ public static class DependencyInjection
             .ConfigureHttpClient(client => client.BaseAddress = new Uri(viaCepBaseUrl));
 
         services.AddScoped<IAddressLookupProvider, ViaCepProvider>();
+        
+        services.Configure<AnbimaOptions>(configuration.GetSection(AnbimaOptions.SectionName));
+        services.AddScoped<IHolidayProvider, AnbimaHolidayProvider>();
 
         return services;
     }

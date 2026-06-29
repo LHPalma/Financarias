@@ -16,6 +16,7 @@
     </PackageVersion>
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.9" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
     <!-- Api / GraphQL -->
     <PackageVersion Include="HotChocolate.AspNetCore" Version="16.2.3" />

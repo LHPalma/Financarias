@@ -1,6 +1,8 @@
 using Financarias.Application.Addresses;
 using Financarias.Application.Addresses.UseCases;
 using Financarias.Application.Analytics;
+using Financarias.Application.Analytics.DTOs.Requests;
+using Financarias.Application.Analytics.DTOs.Results;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Holidays.UseCases;
 using Financarias.Domain.Holidays.Models;
@@ -39,5 +41,14 @@ public class Query
         CancellationToken cancellationToken)
     {
         return useCase.ExecuteAsync(start, end, countryCode, cancellationToken);
+    }
+
+    [GraphQLName("calculateNtnbPrice")]
+    public Task<NtnbPriceResult> CalculateNtnbPriceAsync(
+        CalculateNtnbPriceRequest input,
+        ICalculateNtnbPriceUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        return useCase.ExecuteAsync(input, cancellationToken);
     }
 }

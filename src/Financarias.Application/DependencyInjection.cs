@@ -2,6 +2,8 @@ using Financarias.Application.Addresses;
 using Financarias.Application.Addresses.Queries;
 using Financarias.Application.Addresses.UseCases;
 using Financarias.Application.Analytics;
+using Financarias.Application.Analytics.DTOs.Results;
+using Financarias.Application.Analytics.Mappers;
 using Financarias.Application.Analytics.Queries;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Common.Messaging;
@@ -25,6 +27,10 @@ public static class DependencyInjection
         services.AddScoped<IQueryHandler<FindHolidaysInRangeQuery, IReadOnlySet<DateOnly>>, FindHolidaysInRangeQueryHandler>();
 
         services.AddScoped<IImportHolidaysUseCase, ImportHolidaysUseCase>();
+
+        services.AddSingleton<CalculateNtnbPriceMapper>();
+        services.AddScoped<ICalculateNtnbPriceUseCase, CalculateNtnbPriceUseCase>();
+        services.AddScoped<IQueryHandler<CalculateNtnbPriceQuery, NtnbPriceResult>, CalculateNtnbPriceQueryHandler>();
 
         return services;
     }

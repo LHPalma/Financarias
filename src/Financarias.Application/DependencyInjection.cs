@@ -10,6 +10,9 @@ using Financarias.Application.Common.Messaging;
 using Financarias.Application.Holidays.Queries;
 using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.MarketData;
+using Financarias.Application.MarketData.Cryptos.DTOs.Results;
+using Financarias.Application.MarketData.Cryptos.Queries;
+using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.Queries;
 using Financarias.Application.MarketData.Stocks.UseCases;
@@ -38,6 +41,9 @@ public static class DependencyInjection
 
         services.AddScoped<IGetStockQuoteUseCase, GetStockQuoteUseCase>();
         services.AddScoped<IQueryHandler<GetStockQuoteQuery, StockQuoteResult?>, GetStockQuoteQueryHandler>();
+
+        services.AddScoped<IGetCryptoQuotesUseCase, GetCryptoQuotesUseCase>();
+        services.AddScoped<IQueryHandler<GetCryptoQuotesQuery, IReadOnlyList<CryptoQuoteResult>>, GetCryptoQuotesQueryHandler>();
 
         return services;
     }

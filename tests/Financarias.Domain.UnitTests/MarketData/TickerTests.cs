@@ -77,4 +77,11 @@ public class TickerTests
         Assert.True(a == b);
         Assert.Equal(a.GetHashCode(), b.GetHashCode());
     }
+
+    [Fact(DisplayName = "ToString retorna o valor canônico")]
+    public void ToString_ReturnsCanonicalValue()
+    {
+        // Act & Assert
+        Assert.Equal("PETR4", Ticker.Create("petr4").ToString());
+    }
 }

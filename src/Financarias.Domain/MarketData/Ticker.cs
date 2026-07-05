@@ -39,6 +39,8 @@ public sealed partial record Ticker
         return true;
     }
 
+    public override string ToString() => Value;
+
     private static string Normalize(string input)
         => input.Trim().ToUpperInvariant();
 }

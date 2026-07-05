@@ -9,6 +9,10 @@ using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Common.Messaging;
 using Financarias.Application.Holidays.Queries;
 using Financarias.Application.Holidays.UseCases;
+using Financarias.Application.MarketData;
+using Financarias.Application.MarketData.Stocks.DTOs.Results;
+using Financarias.Application.MarketData.Stocks.Queries;
+using Financarias.Application.MarketData.Stocks.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Financarias.Application;
@@ -31,6 +35,9 @@ public static class DependencyInjection
         services.AddSingleton<CalculateNtnbPriceMapper>();
         services.AddScoped<ICalculateNtnbPriceUseCase, CalculateNtnbPriceUseCase>();
         services.AddScoped<IQueryHandler<CalculateNtnbPriceQuery, NtnbPriceResult>, CalculateNtnbPriceQueryHandler>();
+
+        services.AddScoped<IGetStockQuoteUseCase, GetStockQuoteUseCase>();
+        services.AddScoped<IQueryHandler<GetStockQuoteQuery, StockQuoteResult?>, GetStockQuoteQueryHandler>();
 
         return services;
     }

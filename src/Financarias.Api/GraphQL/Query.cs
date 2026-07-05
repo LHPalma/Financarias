@@ -5,6 +5,8 @@ using Financarias.Application.Analytics.DTOs.Requests;
 using Financarias.Application.Analytics.DTOs.Results;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Holidays.UseCases;
+using Financarias.Application.MarketData.Stocks.DTOs.Results;
+using Financarias.Application.MarketData.Stocks.UseCases;
 using Financarias.Domain.Holidays.Models;
 
 namespace Financarias.Api.GraphQL;
@@ -50,5 +52,14 @@ public class Query
         CancellationToken cancellationToken)
     {
         return useCase.ExecuteAsync(input, cancellationToken);
+    }
+
+    [GraphQLName("stockQuote")]
+    public Task<StockQuoteResult?> GetStockQuoteAsync(
+        string ticker,
+        IGetStockQuoteUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        return useCase.ExecuteAsync(ticker, cancellationToken);
     }
 }

@@ -21,6 +21,24 @@ dotnet_diagnostic.SA1106.severity = none # ';' nas exceptions com primary ctor s
 
 csharp_prefer_braces = true:warning
 
+# Corpo-de-expressao (=>) preferido: alinha com o estilo ja usado no projeto (ex.: Cep).
+# 'when_on_single_line' usa a setinha so quando cabe numa linha; membros de dado sempre '=>'.
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = when_on_single_line:suggestion
+csharp_style_expression_bodied_operators = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_indexers = true:suggestion
+csharp_style_expression_bodied_lambdas = true:suggestion
+
+# ReSharper/Rider nativo: as inspecoes dele ganham do Roslyn no cleanup, entao repetimos a
+# preferencia com as chaves proprias (valor 'expression_body', nao 'true').
+resharper_csharp_accessor_owner_body = expression_body
+resharper_csharp_method_or_operator_body = expression_body
+resharper_csharp_local_function_body = expression_body
+resharper_csharp_constructor_or_destructor_body = expression_body
+
 # Atributo sempre na propria linha, separado da variavel/declaracao (inclusive os "simples"/curtos).
 resharper_place_attribute_on_same_line = false
 resharper_place_simple_attribute_on_same_line = false

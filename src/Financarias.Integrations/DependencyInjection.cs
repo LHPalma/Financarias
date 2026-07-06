@@ -2,6 +2,7 @@
 using Financarias.Application.Addresses;
 using Financarias.Application.Holidays.Import;
 using Financarias.Application.MarketData.Cryptos.Gateways;
+using Financarias.Application.MarketData.ForeignExchange.Gateways;
 using Financarias.Application.MarketData.Stocks.Gateways;
 using Financarias.Application.News;
 using Financarias.Integrations.Addresses.ViaCep.Clients;
@@ -12,6 +13,8 @@ using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
 using Financarias.Integrations.MarketData.CoinGecko.Providers;
+using Financarias.Integrations.MarketData.ErApi.Clients;
+using Financarias.Integrations.MarketData.ErApi.Providers;
 using Financarias.Integrations.News.InfoMoney.Clients;
 using Financarias.Integrations.News.InfoMoney.Providers;
 using Microsoft.Extensions.Configuration;
@@ -82,6 +85,15 @@ public static class DependencyInjection
             });
 
         services.AddScoped<INewsFeedGateway, InfoMoneyNewsProvider>();
+
+        var erApiBaseUrl = configuration["Integrations:ErApi:BaseUrl"]
+                           ?? throw new InvalidOperationException("Integrations:ErApi:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IErApiClient>()
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri(erApiBaseUrl));
+
+        services.AddScoped<IFxRateGateway, ErApiRateProvider>();
 
         return services;
     }

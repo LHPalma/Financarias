@@ -12,6 +12,9 @@ using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.MarketData.Cryptos.DTOs.Results;
 using Financarias.Application.MarketData.Cryptos.Queries;
 using Financarias.Application.MarketData.Cryptos.UseCases;
+using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
+using Financarias.Application.MarketData.ForeignExchange.Queries;
+using Financarias.Application.MarketData.ForeignExchange.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.Queries;
 using Financarias.Application.MarketData.Stocks.UseCases;
@@ -53,6 +56,10 @@ public static class DependencyInjection
 
         services.AddScoped<IGetLatestNewsUseCase, GetLatestNewsUseCase>();
         services.AddScoped<IQueryHandler<GetLatestNewsQuery, IReadOnlyList<NewsArticle>>, GetLatestNewsQueryHandler>();
+
+        services.AddScoped<IConvertCurrencyUseCase, ConvertCurrencyUseCase>();
+        services
+            .AddScoped<IQueryHandler<ConvertCurrencyQuery, ConversionResult?>, ConvertCurrencyQueryHandler>();
 
         return services;
     }

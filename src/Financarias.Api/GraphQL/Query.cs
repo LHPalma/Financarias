@@ -7,11 +7,14 @@ using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.MarketData.Cryptos.DTOs.Results;
 using Financarias.Application.MarketData.Cryptos.UseCases;
+using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
+using Financarias.Application.MarketData.ForeignExchange.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.UseCases;
 using Financarias.Application.News;
 using Financarias.Application.News.UseCases;
 using Financarias.Domain.Holidays.Models;
+using Financarias.Domain.MarketData;
 using Financarias.Domain.MarketData.Cryptos;
 
 namespace Financarias.Api.GraphQL;
@@ -86,6 +89,20 @@ public class Query
         IReadOnlyList<NewsCategory>? sections = null,
         IReadOnlyList<string>? tags = null) =>
         useCase.ExecuteAsync(sections, tags, cancellationToken);
+
+    #endregion
+
+    #region ForeignExchange
+
+    [GraphQLName("convertCurrency")]
+    public Task<ConversionResult?> ConvertCurrencyAsync(
+        IConvertCurrencyUseCase useCase,
+        CancellationToken cancellationToken,
+        decimal amount,
+        Currency from,
+        Currency to,
+        int decimals = 2) =>
+        useCase.ExecuteAsync(amount, from, to, decimals, cancellationToken);
 
     #endregion
 }

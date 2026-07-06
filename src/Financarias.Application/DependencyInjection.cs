@@ -61,6 +61,11 @@ public static class DependencyInjection
         services
             .AddScoped<IQueryHandler<ConvertCurrencyQuery, ConversionResult?>, ConvertCurrencyQueryHandler>();
 
+        services.AddScoped<IGetCurrencyPricesUseCase, GetCurrencyPricesUseCase>();
+        services
+            .AddScoped<IQueryHandler<GetCurrencyPricesQuery, IReadOnlyList<CurrencyPriceResult>>,
+                GetCurrencyPricesQueryHandler>();
+
         return services;
     }
 }

@@ -104,5 +104,14 @@ public class Query
         int decimals = 2) =>
         useCase.ExecuteAsync(amount, from, to, decimals, cancellationToken);
 
+    [GraphQLName("currencyPrices")]
+    public Task<IReadOnlyList<CurrencyPriceResult>> GetCurrencyPricesAsync(
+        IGetCurrencyPricesUseCase useCase,
+        CancellationToken cancellationToken,
+        IReadOnlyList<Currency> currencies,
+        Currency quote = Currency.Brl,
+        int decimals = 2) =>
+        useCase.ExecuteAsync(currencies, quote, decimals, cancellationToken);
+
     #endregion
 }

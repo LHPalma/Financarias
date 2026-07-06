@@ -3,6 +3,7 @@ using Financarias.Application.Addresses;
 using Financarias.Application.Holidays.Import;
 using Financarias.Application.MarketData.Cryptos.Gateways;
 using Financarias.Application.MarketData.Stocks.Gateways;
+using Financarias.Application.News;
 using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Addresses.ViaCep.Providers;
 using Financarias.Integrations.Anbima.Holidays.Clients;
@@ -11,6 +12,8 @@ using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
 using Financarias.Integrations.MarketData.CoinGecko.Providers;
+using Financarias.Integrations.News.InfoMoney.Clients;
+using Financarias.Integrations.News.InfoMoney.Providers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
@@ -66,6 +69,19 @@ public static class DependencyInjection
             });
 
         services.AddScoped<ICryptoQuoteGateway, CoinGeckoQuoteProvider>();
+
+        var infoMoneyBaseUrl = configuration["Integrations:InfoMoney:BaseUrl"]
+                               ?? throw new InvalidOperationException("Integrations:InfoMoney:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IInfoMoneyClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(infoMoneyBaseUrl);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<INewsFeedGateway, InfoMoneyNewsProvider>();
 
         return services;
     }

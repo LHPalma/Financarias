@@ -9,6 +9,8 @@ using Financarias.Application.MarketData.Cryptos.DTOs.Results;
 using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.UseCases;
+using Financarias.Application.News;
+using Financarias.Application.News.UseCases;
 using Financarias.Domain.Holidays.Models;
 using Financarias.Domain.MarketData.Cryptos;
 
@@ -72,6 +74,18 @@ public class Query
     [GraphQLName("availableQuoteCurrencies")]
     public Task<QuoteCurrency[]> GetAvailableQuotesCurrenciesAsync() =>
         Task.FromResult(Enum.GetValues<QuoteCurrency>());
+
+    #endregion
+
+    #region News
+
+    [GraphQLName("latestNews")]
+    public Task<IReadOnlyList<NewsArticle>> GetLatestNewsAsync(
+        IGetLatestNewsUseCase useCase,
+        CancellationToken cancellationToken,
+        IReadOnlyList<NewsCategory>? sections = null,
+        IReadOnlyList<string>? tags = null) =>
+        useCase.ExecuteAsync(sections, tags, cancellationToken);
 
     #endregion
 }

@@ -1,15 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <ProjectReference Include="..\Financarias.Application\Financarias.Application.csproj" />
+        <ProjectReference Include="..\Financarias.Application\Financarias.Application.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ExcelDataReader" />
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-        <PackageReference Include="Refit" />
-        <PackageReference Include="Refit.HttpClientFactory" />
-        <PackageReference Include="System.Text.Encoding.CodePages" />
+        <PackageReference Include="ExcelDataReader"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
+        <PackageReference Include="Refit"/>
+        <PackageReference Include="Refit.HttpClientFactory"/>
+        <PackageReference Include="System.ServiceModel.Syndication"/>
+        <PackageReference Include="System.Text.Encoding.CodePages"/>
     </ItemGroup>
 
     <PropertyGroup>

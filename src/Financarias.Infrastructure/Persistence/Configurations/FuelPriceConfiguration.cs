@@ -31,5 +31,8 @@ public sealed class FuelPriceConfiguration : IEntityTypeConfiguration<FuelPrice>
 
         builder.HasIndex(p => new { p.StationId, p.Product, p.CollectedOn })
             .IsUnique();
+
+        builder.ToTable(t =>
+            t.HasCheckConstraint("ck_fuel_prices_sale_price_positive", "sale_price > 0"));
     }
 }

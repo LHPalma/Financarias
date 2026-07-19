@@ -3,12 +3,15 @@ using Financarias.Application.Addresses;
 using Financarias.Application.Holidays.Import;
 using Financarias.Application.MarketData.Cryptos.Gateways;
 using Financarias.Application.MarketData.ForeignExchange.Gateways;
+using Financarias.Application.MarketData.Fuel.Import;
 using Financarias.Application.MarketData.Stocks.Gateways;
 using Financarias.Application.News;
 using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Addresses.ViaCep.Providers;
 using Financarias.Integrations.Anbima.Holidays.Clients;
 using Financarias.Integrations.Anbima.Holidays.Providers;
+using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
+using Financarias.Integrations.MarketData.Anp.Fuel.Providers;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
@@ -94,6 +97,20 @@ public static class DependencyInjection
             .ConfigureHttpClient(client => client.BaseAddress = new Uri(erApiBaseUrl));
 
         services.AddScoped<IFxRateGateway, ErApiRateProvider>();
+
+        var anpBaseUrl = configuration["Integrations:Anp:BaseUrl"]
+                         ?? throw new InvalidOperationException("Integrations:Anp:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IAnpFuelClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(anpBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(5);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<IFuelPriceProvider, AnpFuelProvider>();
 
         return services;
     }

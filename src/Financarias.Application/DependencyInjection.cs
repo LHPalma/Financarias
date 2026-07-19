@@ -15,6 +15,9 @@ using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
 using Financarias.Application.MarketData.ForeignExchange.Queries;
 using Financarias.Application.MarketData.ForeignExchange.UseCases;
+using Financarias.Application.MarketData.Fuel.Commands;
+using Financarias.Application.MarketData.Fuel.Import;
+using Financarias.Application.MarketData.Fuel.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.Queries;
 using Financarias.Application.MarketData.Stocks.UseCases;
@@ -65,6 +68,11 @@ public static class DependencyInjection
         services
             .AddScoped<IQueryHandler<GetCurrencyPricesQuery, IReadOnlyList<CurrencyPriceResult>>,
                 GetCurrencyPricesQueryHandler>();
+
+        services.AddScoped<IImportFuelPricesUseCase, ImportFuelPricesUseCase>();
+        services
+            .AddScoped<ICommandHandler<ImportFuelPricesCommand, FuelImportResult>,
+                ImportFuelPricesCommandHandler>();
 
         return services;
     }

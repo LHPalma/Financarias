@@ -27,7 +27,8 @@ builder.Services
     .AddGraphQLServer()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
-    .AddErrorFilter<DomainErrorFilter>();
+    .AddErrorFilter<DomainErrorFilter>()
+    .ModifyRequestOptions(options => options.ExecutionTimeout = TimeSpan.FromMinutes(10));
 
 var app = builder.Build();
 
@@ -56,4 +57,6 @@ app.MapGraphQL();
 app.Run();
 
 // Exposed so WebApplicationFactory<Program> can bootstrap the app in functional tests.
-public partial class Program { }
+public partial class Program
+{
+}

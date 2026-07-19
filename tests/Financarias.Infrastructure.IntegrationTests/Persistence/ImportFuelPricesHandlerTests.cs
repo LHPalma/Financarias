@@ -46,7 +46,8 @@ public class ImportFuelPricesHandlerTests : IAsyncLifetime
         var handler = new ImportFuelPricesCommandHandler(
             new StubFuelPriceProvider(items),
             new Repository<FuelStation>(context),
-            new Repository<FuelPrice>(context));
+            new Repository<FuelPrice>(context),
+            new UnitOfWork(context));
 
         return await handler.HandleAsync(new ImportFuelPricesCommand());
     }
@@ -67,7 +68,7 @@ public class ImportFuelPricesHandlerTests : IAsyncLifetime
         // Act — reimportação: gasolina mudou de preço, diesel igual, e chega a semana 2
         var second = await RunImportAsync(
             Item(FuelProduct.Gasoline, Week1, 8.10m), // mudou 7,97 -> 8,10 (update)
-            Item(FuelProduct.Diesel, Week1, 8.15m),   // igual (pula)
+            Item(FuelProduct.Diesel, Week1, 8.15m), // igual (pula)
             Item(FuelProduct.Gasoline, Week2, 8.20m)); // data nova (insert)
 
         // Assert — posto não recriado; 1 novo preço, 1 atualizado

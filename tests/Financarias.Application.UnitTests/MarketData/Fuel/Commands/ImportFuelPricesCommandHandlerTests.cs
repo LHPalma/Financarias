@@ -17,6 +17,7 @@ public class ImportFuelPricesCommandHandlerTests
     private readonly IFuelPriceProvider _provider = Substitute.For<IFuelPriceProvider>();
     private readonly IRepository<FuelStation> _stations = Substitute.For<IRepository<FuelStation>>();
     private readonly IRepository<FuelPrice> _prices = Substitute.For<IRepository<FuelPrice>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
     [Fact(DisplayName = "Cria o posto e insere os preços quando nada existe ainda")]
     public async Task Handle_CreatesStationAndPrices_WhenNothingExists()
@@ -112,7 +113,7 @@ public class ImportFuelPricesCommandHandlerTests
         await _prices.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
-    private ImportFuelPricesCommandHandler CreateHandler() => new(_provider, _stations, _prices);
+    private ImportFuelPricesCommandHandler CreateHandler() => new(_provider, _stations, _prices, _unitOfWork);
 
     private void ProviderReturns(params FuelPriceImportItem[] items) =>
         _provider.FetchFuelPricesAsync(Arg.Any<CancellationToken>()).Returns(ToAsync(items));

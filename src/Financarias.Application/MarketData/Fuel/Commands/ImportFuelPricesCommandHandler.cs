@@ -10,7 +10,8 @@ namespace Financarias.Application.MarketData.Fuel.Commands;
 public class ImportFuelPricesCommandHandler(
     IFuelPriceProvider provider,
     IRepository<FuelStation> stationRepository,
-    IRepository<FuelPrice> priceRepository
+    IRepository<FuelPrice> priceRepository,
+    IUnitOfWork unitOfWork
 ) : ICommandHandler<ImportFuelPricesCommand, FuelImportResult>
 {
     private const int BatchSize = 5000;
@@ -75,6 +76,8 @@ public class ImportFuelPricesCommandHandler(
     {
         var stationsByCnpj = await EnsureStationsAsync(batch, cancellationToken);
         var (created, updated) = await UpsertPricesAsync(batch, stationsByCnpj, cancellationToken);
+
+        unitOfWork.ClearTracking();
 
         return new Counters(batch.Count, stationsByCnpj.NewlyCreated, created, updated);
     }

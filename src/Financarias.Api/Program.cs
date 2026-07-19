@@ -52,6 +52,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/", () => Results.Redirect("/graphql"));
+
 app.MapGraphQL();
 
 app.Run();

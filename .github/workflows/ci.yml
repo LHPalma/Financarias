@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # Um projeto por passo: o passo que ficar vermelho já diz qual camada quebrou.
+      # Financarias.Integrations.IntegrationTests fica de fora — bate em ViaCEP e Anbima
+      # de verdade, então uma indisponibilidade deles reprovaria um commit correto.
+      # Esses rodam no workflow external-contracts.yml.
+
+      - name: Domain unit tests
+        run: dotnet test tests/Financarias.Domain.UnitTests --no-build --configuration Release
+
+      - name: Application unit tests
+        run: dotnet test tests/Financarias.Application.UnitTests --no-build --configuration Release
+
+      - name: Integrations unit tests
+        run: dotnet test tests/Financarias.Integrations.UnitTests --no-build --configuration Release
+
+      - name: Infrastructure integration tests (Testcontainers/Postgres)
+        run: dotnet test tests/Financarias.Infrastructure.IntegrationTests --no-build --configuration Release
+
+      - name: Api functional tests
+        run: dotnet test tests/Financarias.Api.FunctionalTests --no-build --configuration Release

@@ -1,0 +1,48 @@
+version: 2
+
+updates:
+  # Versões vivem em Directory.Packages.props (Central Package Management);
+  # o Dependabot lê o CPM e edita lá, não nos .csproj.
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # Definido antes de "dotnet" e excluído lá: o Test.Sdk segue o VSTest (17.x),
+      # não o trem de release do .NET.
+      testing:
+        patterns:
+          - "xunit*"
+          - "NSubstitute"
+          - "coverlet.*"
+          - "Testcontainers.*"
+          - "Microsoft.NET.Test.Sdk"
+      # O trem do .NET sobe junto todo mês; sem agrupar, vira meia dúzia de PRs
+      # que só fazem sentido mergeados na mesma versão.
+      dotnet:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+          - "EFCore.*"
+          - "Npgsql.*"
+        exclude-patterns:
+          - "Microsoft.NET.Test.Sdk"
+
+  # Mantém actions/checkout, actions/setup-dotnet e actions/cache atualizados.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: chore
+      include: scope

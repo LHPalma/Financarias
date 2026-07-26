@@ -3,6 +3,10 @@ using Financarias.Application.Addresses.Queries;
 using Financarias.Application.Addresses.UseCases;
 using Financarias.Application.Analytics;
 using Financarias.Application.Analytics.DTOs.Results;
+using Financarias.Application.Analytics.Financing.DTOs.Results;
+using Financarias.Application.Analytics.Financing.Mappers;
+using Financarias.Application.Analytics.Financing.Queries;
+using Financarias.Application.Analytics.Financing.UseCases;
 using Financarias.Application.Analytics.Mappers;
 using Financarias.Application.Analytics.Queries;
 using Financarias.Application.Analytics.UseCases;
@@ -48,6 +52,12 @@ public static class DependencyInjection
         services.AddSingleton<CalculateNtnbPriceMapper>();
         services.AddScoped<ICalculateNtnbPriceUseCase, CalculateNtnbPriceUseCase>();
         services.AddScoped<IQueryHandler<CalculateNtnbPriceQuery, NtnbPriceResult>, CalculateNtnbPriceQueryHandler>();
+
+        services.AddSingleton<SimulateFinancingMapper>();
+        services.AddScoped<ISimulateFinancingUseCase, SimulateFinancingUseCase>();
+        services
+            .AddScoped<IQueryHandler<SimulateFinancingQuery, FinancingSimulationResult>,
+                SimulateFinancingQueryHandler>();
 
         services.AddScoped<IGetStockQuoteUseCase, GetStockQuoteUseCase>();
         services.AddScoped<IQueryHandler<GetStockQuoteQuery, StockQuoteResult?>, GetStockQuoteQueryHandler>();

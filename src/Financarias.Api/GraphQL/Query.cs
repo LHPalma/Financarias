@@ -3,6 +3,9 @@ using Financarias.Application.Addresses.UseCases;
 using Financarias.Application.Analytics;
 using Financarias.Application.Analytics.DTOs.Requests;
 using Financarias.Application.Analytics.DTOs.Results;
+using Financarias.Application.Analytics.Financing.DTOs.Requests;
+using Financarias.Application.Analytics.Financing.DTOs.Results;
+using Financarias.Application.Analytics.Financing.UseCases;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.MarketData.Cryptos.DTOs.Results;
@@ -51,6 +54,13 @@ public class Query
     public Task<NtnbPriceResult> CalculateNtnbPriceAsync(
         CalculateNtnbPriceRequest input,
         ICalculateNtnbPriceUseCase useCase,
+        CancellationToken cancellationToken) =>
+        useCase.ExecuteAsync(input, cancellationToken);
+
+    [GraphQLName("simulateFinancing")]
+    public Task<FinancingSimulationResult> SimulateFinancingAsync(
+        SimulateFinancingRequest input,
+        ISimulateFinancingUseCase useCase,
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(input, cancellationToken);
 

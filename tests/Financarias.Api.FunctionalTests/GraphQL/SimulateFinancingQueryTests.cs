@@ -35,7 +35,7 @@ public class SimulateFinancingQueryTests : IClassFixture<WebApplicationFactory<P
         {
             query = "query { simulateFinancing(input: { principal: 30000, monthlyRate: 0.015, installments: 48 }) " +
                     "{ installment totalPaid totalInterest schedule { period installment interest " +
-                    "amortization outstandingBalance } } }"
+                    "accumulatedInterest amortization outstandingBalance } } }"
         };
 
         // Act
@@ -50,7 +50,9 @@ public class SimulateFinancingQueryTests : IClassFixture<WebApplicationFactory<P
         Assert.Equal(12300.03m, result.GetProperty("totalInterest").GetDecimal());
         Assert.Equal(48, schedule.GetArrayLength());
         Assert.Equal(450.00m, schedule[0].GetProperty("interest").GetDecimal());
+        Assert.Equal(450.00m, schedule[0].GetProperty("accumulatedInterest").GetDecimal());
         Assert.Equal(881.28m, schedule[47].GetProperty("installment").GetDecimal());
+        Assert.Equal(12300.03m, schedule[47].GetProperty("accumulatedInterest").GetDecimal());
         Assert.Equal(0m, schedule[47].GetProperty("outstandingBalance").GetDecimal());
     }
 

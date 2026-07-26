@@ -4,5 +4,6 @@ public record InstallmentBreakdownResult(
     int Period,
     decimal Installment,
     decimal Interest,
+    decimal AccumulatedInterest,
     decimal Amortization,
     decimal OutstandingBalance);

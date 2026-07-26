@@ -40,10 +40,12 @@ public class SimulateFinancingQueryHandlerTests
         Assert.Equal(1, schedule[0].Period);
         Assert.Equal(881.25m, schedule[0].Installment);
         Assert.Equal(450.00m, schedule[0].Interest);
+        Assert.Equal(450.00m, schedule[0].AccumulatedInterest);
         Assert.Equal(431.25m, schedule[0].Amortization);
         Assert.Equal(29568.75m, schedule[0].OutstandingBalance);
         Assert.Equal(48, schedule[^1].Period);
         Assert.Equal(881.28m, schedule[^1].Installment);
+        Assert.Equal(12300.03m, schedule[^1].AccumulatedInterest);
         Assert.Equal(0m, schedule[^1].OutstandingBalance);
     }
 

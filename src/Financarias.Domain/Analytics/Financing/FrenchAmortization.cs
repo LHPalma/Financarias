@@ -61,7 +61,7 @@ public static class FrenchAmortization
             totalPaid += paid;
             totalInterest += interest;
 
-            rows.Add(new InstallmentRow(period, paid, interest, amortization, balance));
+            rows.Add(new InstallmentRow(period, paid, interest, totalInterest, amortization, balance));
         }
 
         return new AmortizationSchedule(installment, totalPaid, totalInterest, rows);

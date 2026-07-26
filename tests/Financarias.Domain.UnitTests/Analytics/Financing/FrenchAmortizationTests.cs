@@ -38,6 +38,7 @@ public class FrenchAmortizationTests
         Assert.Equal(1000m, schedule.Installment);
         Assert.Equal(0m, schedule.TotalInterest);
         Assert.All(schedule.Rows, row => Assert.Equal(0m, row.Interest));
+        Assert.All(schedule.Rows, row => Assert.Equal(0m, row.AccumulatedInterest));
     }
 
     [Fact(DisplayName = "Primeira parcela separa juros e amortização sobre o principal cheio")]
@@ -50,6 +51,7 @@ public class FrenchAmortizationTests
         Assert.Equal(1, first.Period);
         Assert.Equal(881.25m, first.Installment);
         Assert.Equal(450.00m, first.Interest);
+        Assert.Equal(450.00m, first.AccumulatedInterest);
         Assert.Equal(431.25m, first.Amortization);
         Assert.Equal(29568.75m, first.OutstandingBalance);
     }
@@ -65,6 +67,7 @@ public class FrenchAmortizationTests
         Assert.Equal(48, last.Period);
         Assert.Equal(881.28m, last.Installment);
         Assert.Equal(13.02m, last.Interest);
+        Assert.Equal(12300.03m, last.AccumulatedInterest);
         Assert.Equal(868.26m, last.Amortization);
         Assert.Equal(0m, last.OutstandingBalance);
         Assert.Equal(42300.03m, schedule.TotalPaid);
@@ -83,6 +86,23 @@ public class FrenchAmortizationTests
         Assert.Equal(installments, schedule.Rows.Count);
         Assert.Equal(principal, schedule.Rows.Sum(row => row.Amortization));
         Assert.Equal(0m, schedule.Rows[^1].OutstandingBalance);
+    }
+
+    [Theory(DisplayName = "Juros acumulados crescem linha a linha e fecham no total de juros")]
+    [MemberData(nameof(InstallmentGoldenCases))]
+    public void Schedule_AccumulatedInterest_AddsUpToTotalInterest(
+        decimal principal, decimal monthlyRate, int installments, decimal _)
+    {
+        // Act
+        var schedule = Calculate(principal, monthlyRate, installments);
+
+        // Assert
+        Assert.Equal(schedule.TotalInterest, schedule.Rows[^1].AccumulatedInterest);
+        Assert.All(
+            schedule.Rows,
+            row => Assert.Equal(
+                schedule.Rows.Take(row.Period).Sum(previous => previous.Interest),
+                row.AccumulatedInterest));
     }
 
     [Theory(DisplayName = "Saldo devedor é estritamente decrescente ao longo da tabela")]

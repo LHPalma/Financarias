@@ -15,7 +15,7 @@ public sealed partial record Ticker
     public static Ticker Create(string? input)
     {
         return !TryCreate(input, out var ticker)
-            ? throw new InvalidTickerException(input)
+            ? throw MarketDataErrors.Ticker(input)
             : ticker;
     }
 

@@ -5,7 +5,7 @@ using Financarias.Application.Analytics.Financing.Queries;
 using Financarias.Application.Analytics.Financing.UseCases;
 using Financarias.Application.Common.Messaging;
 using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
+using Financarias.Domain.Common.Exceptions;
 using NSubstitute;
 
 namespace Financarias.Application.UnitTests.Analytics.Financing.UseCases;
@@ -44,10 +44,12 @@ public class SimulateEarlyPayoffUseCaseTests
     public async Task ExecuteAsync_WithInvalidRequest_ThrowsBeforeReachingHandler()
     {
         // Act & Assert
-        Assert.Throws<InvalidInstallmentCountException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
         {
             _ = _useCase.ExecuteAsync(new SimulateEarlyPayoffRequest(30000m, 0.015m, 0, 5));
         });
+
+        Assert.Equal("analytics.installmentcount.invalid", exception.Code);
 
         await _handler.DidNotReceive().HandleAsync(Arg.Any<SimulateEarlyPayoffQuery>(), Arg.Any<CancellationToken>());
     }

@@ -1,5 +1,5 @@
+using Financarias.Domain.Common.Exceptions;
 ﻿using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Analytics;
 
@@ -25,7 +25,8 @@ public class InstallmentCountTests
     public void Create_WithValueOutOfRange_ThrowsInvalidInstallmentCountException(int value)
     {
         // Act & Assert
-        Assert.Throws<InvalidInstallmentCountException>(() => InstallmentCount.Create(value));
+        var exception = Assert.Throws<DomainValidationException>(() => InstallmentCount.Create(value));
+        Assert.Equal("analytics.installmentcount.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "Dois InstallmentCounts com o mesmo valor são iguais (igualdade por valor)")]

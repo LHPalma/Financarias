@@ -1,5 +1,5 @@
+using Financarias.Domain.Common.Exceptions;
 ﻿using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Analytics;
 
@@ -44,14 +44,16 @@ public class AnnualYieldTests
     public void FromFraction_WithValueAtOrBelowMinusOne_ThrowsInvalidYieldException(decimal value)
     {
         // Act & Assert
-        Assert.Throws<InvalidYieldException>(() => AnnualYield.FromFraction(value));
+        var exception = Assert.Throws<DomainValidationException>(() => AnnualYield.FromFraction(value));
+        Assert.Equal("analytics.yield.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "FromPercent propaga a invariante: -100% lança InvalidYieldException")]
     public void FromPercent_WithMinusHundredPercent_ThrowsInvalidYieldException()
     {
         // Act & Assert
-        Assert.Throws<InvalidYieldException>(() => AnnualYield.FromPercent(-100m));
+        var exception = Assert.Throws<DomainValidationException>(() => AnnualYield.FromPercent(-100m));
+        Assert.Equal("analytics.yield.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "Mesma taxa por frações ou percentual produz valores iguais (igualdade por valor)")]

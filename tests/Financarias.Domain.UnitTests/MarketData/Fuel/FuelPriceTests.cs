@@ -1,7 +1,7 @@
+using Financarias.Domain.Common.Exceptions;
 using Financarias.Domain.Geography;
 using Financarias.Domain.LegalEntities;
 using Financarias.Domain.MarketData.Fuel;
-using Financarias.Domain.MarketData.Fuel.Exceptions;
 
 namespace Financarias.Domain.UnitTests.MarketData.Fuel;
 
@@ -62,8 +62,10 @@ public class FuelPriceTests
     public void Create_WithNonPositiveSalePrice_ThrowsInvalidFuelPriceException(decimal salePrice)
     {
         // Act & Assert
-        Assert.Throws<InvalidFuelPriceException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             FuelPrice.Create(Station, FuelProduct.Gasoline, CollectedOn, salePrice, null, "R$ / litro"));
+
+        Assert.Equal("fuel.price.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "UpdateValues sobrescreve os valores de uma coleta existente")]
@@ -87,6 +89,7 @@ public class FuelPriceTests
         var price = FuelPrice.Create(Station, FuelProduct.Gasoline, CollectedOn, 7.97m, null, "R$ / litro");
 
         // Act & Assert
-        Assert.Throws<InvalidFuelPriceException>(() => price.UpdateValues(0, null, "R$ / litro"));
+        var exception = Assert.Throws<DomainValidationException>(() => price.UpdateValues(0, null, "R$ / litro"));
+        Assert.Equal("fuel.price.invalid", exception.Code);
     }
 }

@@ -1,5 +1,5 @@
 using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Analytics;
 
@@ -35,7 +35,8 @@ public class BusinessDayCountTests
     public void Create_WithNegativeValue_ThrowsInvalidBusinessDayCountException(int value)
     {
         // Act & Assert
-        Assert.Throws<InvalidBusinessDayCountException>(() => BusinessDayCount.Create(value));
+        var exception = Assert.Throws<DomainValidationException>(() => BusinessDayCount.Create(value));
+        Assert.Equal("analytics.businessdaycount.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "Dois counts com o mesmo valor são iguais (igualdade por valor)")]

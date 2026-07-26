@@ -1,5 +1,5 @@
+using Financarias.Domain.Common.Exceptions;
 using Financarias.Domain.Holidays;
-using Financarias.Domain.Holidays.Exceptions;
 using Financarias.Domain.Holidays.Models;
 
 namespace Financarias.Domain.UnitTests.Holidays;
@@ -28,7 +28,9 @@ public class HolidayTests
     public void Create_WithBlankName_ThrowsInvalidHolidayNameException(string? name)
     {
         // Act & Assert
-        Assert.Throws<InvalidHolidayNameException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             Holiday.Create(new DateOnly(2024, 1, 1), name!, CountryCode.BR));
+
+        Assert.Equal("holiday.name.required", exception.Code);
     }
 }

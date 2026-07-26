@@ -13,7 +13,7 @@ public sealed class Holiday : BaseEntity<long>, IAggregateRoot
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new InvalidHolidayNameException();
+            throw HolidayErrors.Name();
         }
 
         Date = date;

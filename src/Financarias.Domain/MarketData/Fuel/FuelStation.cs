@@ -27,7 +27,7 @@ public sealed class FuelStation : BaseEntity<long>, IAggregateRoot
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new InvalidFuelStationNameException();
+            throw FuelErrors.StationName();
         }
 
         Cnpj = cnpj;
@@ -93,7 +93,7 @@ public sealed class FuelStation : BaseEntity<long>, IAggregateRoot
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new InvalidFuelStationNameException();
+            throw FuelErrors.StationName();
         }
 
         Name = name;

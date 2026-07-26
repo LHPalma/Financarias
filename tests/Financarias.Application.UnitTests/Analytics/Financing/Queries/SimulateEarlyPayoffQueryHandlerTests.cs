@@ -1,7 +1,7 @@
 using Financarias.Application.Analytics.Financing.Mappers;
 using Financarias.Application.Analytics.Financing.Queries;
 using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Application.UnitTests.Analytics.Financing.Queries;
 
@@ -45,6 +45,7 @@ public class SimulateEarlyPayoffQueryHandlerTests
     public async Task HandleAsync_WithPeriodBeyondTerm_ThrowsInvalidPayoffPeriodException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidPayoffPeriodException>(() => _handler.HandleAsync(Query(11)));
+        var exception = await Assert.ThrowsAsync<DomainValidationException>(() => _handler.HandleAsync(Query(11)));
+        Assert.Equal("analytics.financing.payoffperiod.invalid", exception.Code);
     }
 }

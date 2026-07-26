@@ -11,7 +11,7 @@ public sealed record BusinessDayCount
 
     public static BusinessDayCount Create(int value)
     {
-        return value >= 0 ? new BusinessDayCount(value) : throw new InvalidBusinessDayCountException(value);
+        return value >= 0 ? new BusinessDayCount(value) : throw AnalyticsErrors.BusinessDayCount(value);
     }
 
     public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);

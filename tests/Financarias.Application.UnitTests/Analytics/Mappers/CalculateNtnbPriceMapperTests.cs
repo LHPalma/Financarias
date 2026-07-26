@@ -1,7 +1,7 @@
 using Financarias.Application.Analytics.DTOs.Requests;
 using Financarias.Application.Analytics.Mappers;
 using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Application.UnitTests.Analytics.Mappers;
 
@@ -38,6 +38,7 @@ public class CalculateNtnbPriceMapperTests
         var request = new CalculateNtnbPriceRequest(0m, 0.07m, 0.0046m, new DateOnly(2024, 5, 21), new DateOnly(2035, 5, 15));
 
         // Act & Assert
-        Assert.Throws<InvalidNominalValueException>(() => _mapper.ToQuery(request));
+        var exception = Assert.Throws<DomainValidationException>(() => _mapper.ToQuery(request));
+        Assert.Equal("analytics.nominalvalue.invalid", exception.Code);
     }
 }

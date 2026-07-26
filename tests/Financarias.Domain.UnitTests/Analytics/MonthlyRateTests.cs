@@ -1,5 +1,5 @@
+using Financarias.Domain.Common.Exceptions;
 ﻿using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Analytics;
 
@@ -43,14 +43,16 @@ public class MonthlyRateTests
     public void FromFraction_WithNegativeValue_ThrowsInvalidMonthlyRateException(decimal value)
     {
         // Act & Assert
-        Assert.Throws<InvalidMonthlyRateException>(() => MonthlyRate.FromFraction(value));
+        var exception = Assert.Throws<DomainValidationException>(() => MonthlyRate.FromFraction(value));
+        Assert.Equal("analytics.monthlyrate.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "FromPercent propaga a invariante: percentual negativo lança InvalidMonthlyRateException")]
     public void FromPercent_WithNegativePercent_ThrowsInvalidMonthlyRateException()
     {
         // Act & Assert
-        Assert.Throws<InvalidMonthlyRateException>(() => MonthlyRate.FromPercent(-1.5m));
+        var exception = Assert.Throws<DomainValidationException>(() => MonthlyRate.FromPercent(-1.5m));
+        Assert.Equal("analytics.monthlyrate.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "Taxa zero é válida e se reconhece como zero (promoção sem juros)")]

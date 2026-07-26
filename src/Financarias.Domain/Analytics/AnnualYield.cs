@@ -12,7 +12,7 @@ public sealed record AnnualYield
 
     public static AnnualYield FromFraction(decimal value)
     {
-        return value > -1m ? new AnnualYield(value) : throw new InvalidYieldException(value);
+        return value > -1m ? new AnnualYield(value) : throw AnalyticsErrors.Yield(value);
     }
 
     public static AnnualYield FromPercent(decimal percent) => FromFraction(percent / 100m);

@@ -1,4 +1,5 @@
 using Financarias.Domain.Addresses;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Addresses;
 
@@ -40,7 +41,8 @@ public class CepTests
     public void Create_WithInvalidInput_ThrowsInvalidCepException(string? input)
     {
         // Act & Assert
-        Assert.Throws<InvalidCepException>(() => Cep.Create(input));
+        var exception = Assert.Throws<DomainValidationException>(() => Cep.Create(input));
+        Assert.Equal("address.cep.invalid", exception.Code);
     }
 
     [Theory(DisplayName = "TryCreate retorna true e produz o CEP para entrada válida")]

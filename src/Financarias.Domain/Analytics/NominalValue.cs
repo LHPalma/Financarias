@@ -12,7 +12,7 @@ public sealed record NominalValue
 
     public static NominalValue Create(decimal value)
     {
-        return value > 0 ? new NominalValue(value) : throw new InvalidNominalValueException(value);
+        return value > 0 ? new NominalValue(value) : throw AnalyticsErrors.NominalValue(value);
     }
 
     public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);

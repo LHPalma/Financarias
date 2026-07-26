@@ -1,3 +1,4 @@
+using Financarias.Domain.Common.Exceptions;
 using Financarias.Domain.MarketData;
 
 namespace Financarias.Domain.UnitTests.MarketData;
@@ -33,7 +34,8 @@ public class TickerTests
     public void Create_WithInvalidInput_ThrowsInvalidTickerException(string? input)
     {
         // Act & Assert
-        Assert.Throws<InvalidTickerException>(() => Ticker.Create(input));
+        var exception = Assert.Throws<DomainValidationException>(() => Ticker.Create(input));
+        Assert.Equal("stock.ticker.invalid", exception.Code);
     }
 
     [Theory(DisplayName = "TryCreate retorna true e produz o ticker para entrada válida")]

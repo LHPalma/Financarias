@@ -2,6 +2,7 @@ using Financarias.Application.Common.Messaging;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.Queries;
 using Financarias.Application.MarketData.Stocks.UseCases;
+using Financarias.Domain.Common.Exceptions;
 using Financarias.Domain.MarketData;
 using NSubstitute;
 
@@ -40,7 +41,8 @@ public class GetStockQuoteUseCaseTests
     public async Task Execute_WithInvalidTicker_ThrowsAndDoesNotCallHandler()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidTickerException>(() => _useCase.ExecuteAsync("PETR"));
+        var exception = await Assert.ThrowsAsync<DomainValidationException>(() => _useCase.ExecuteAsync("PETR"));
+        Assert.Equal("stock.ticker.invalid", exception.Code);
         await _handler.DidNotReceive().HandleAsync(Arg.Any<GetStockQuoteQuery>(), Arg.Any<CancellationToken>());
     }
 }

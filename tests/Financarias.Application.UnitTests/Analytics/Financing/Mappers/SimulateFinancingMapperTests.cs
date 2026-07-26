@@ -1,7 +1,7 @@
 using Financarias.Application.Analytics.Financing.DTOs.Requests;
 using Financarias.Application.Analytics.Financing.Mappers;
 using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Application.UnitTests.Analytics.Financing.Mappers;
 
@@ -31,7 +31,8 @@ public class SimulateFinancingMapperTests
         var request = new SimulateFinancingRequest(0m, 0.015m, 48);
 
         // Act & Assert
-        Assert.Throws<InvalidNominalValueException>(() => _mapper.ToQuery(request));
+        var exception = Assert.Throws<DomainValidationException>(() => _mapper.ToQuery(request));
+        Assert.Equal("analytics.nominalvalue.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "ToQuery propaga InvalidMonthlyRateException para taxa negativa")]
@@ -41,7 +42,8 @@ public class SimulateFinancingMapperTests
         var request = new SimulateFinancingRequest(30000m, -0.01m, 48);
 
         // Act & Assert
-        Assert.Throws<InvalidMonthlyRateException>(() => _mapper.ToQuery(request));
+        var exception = Assert.Throws<DomainValidationException>(() => _mapper.ToQuery(request));
+        Assert.Equal("analytics.monthlyrate.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "ToQuery propaga InvalidInstallmentCountException para prazo fora do intervalo")]
@@ -51,6 +53,7 @@ public class SimulateFinancingMapperTests
         var request = new SimulateFinancingRequest(30000m, 0.015m, 0);
 
         // Act & Assert
-        Assert.Throws<InvalidInstallmentCountException>(() => _mapper.ToQuery(request));
+        var exception = Assert.Throws<DomainValidationException>(() => _mapper.ToQuery(request));
+        Assert.Equal("analytics.installmentcount.invalid", exception.Code);
     }
 }

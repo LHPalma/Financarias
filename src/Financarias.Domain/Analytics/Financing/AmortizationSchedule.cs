@@ -12,7 +12,7 @@ public record AmortizationSchedule(
     {
         if (period < 1 || period > Rows.Count)
         {
-            throw new InvalidPayoffPeriodException(period, Rows.Count);
+            throw AnalyticsErrors.PayoffPeriod(period, Rows.Count);
         }
 
         var row = Rows[period - 1];

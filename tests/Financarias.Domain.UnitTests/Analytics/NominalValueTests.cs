@@ -1,5 +1,5 @@
 using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Analytics;
 
@@ -25,7 +25,8 @@ public class NominalValueTests
     public void Create_WithNonPositiveValue_ThrowsInvalidNominalValueException(decimal value)
     {
         // Act & Assert
-        Assert.Throws<InvalidNominalValueException>(() => NominalValue.Create(value));
+        var exception = Assert.Throws<DomainValidationException>(() => NominalValue.Create(value));
+        Assert.Equal("analytics.nominalvalue.invalid", exception.Code);
     }
 
     [Fact(DisplayName = "Dois valores nominais iguais são iguais (igualdade por valor)")]

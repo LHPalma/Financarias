@@ -1,8 +1,9 @@
-using Financarias.Application.Addresses;
 using Financarias.Application.Addresses.Queries;
 using Financarias.Application.Addresses.UseCases;
+using Financarias.Application.Addresses;
 using Financarias.Application.Common.Messaging;
 using Financarias.Domain.Addresses;
+using Financarias.Domain.Common.Exceptions;
 using NSubstitute;
 
 namespace Financarias.Application.UnitTests.Addresses.UseCases;
@@ -38,7 +39,8 @@ public class FindAddressByCepUseCaseTests
     public async Task Execute_WithInvalidCep_ThrowsAndDoesNotCallHandler()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidCepException>(() => _useCase.ExecuteAsync("123"));
+        var exception = await Assert.ThrowsAsync<DomainValidationException>(() => _useCase.ExecuteAsync("123"));
+        Assert.Equal("address.cep.invalid", exception.Code);
         await _handler.DidNotReceive().HandleAsync(Arg.Any<FindAddressByCepQuery>(), Arg.Any<CancellationToken>());
     }
 }

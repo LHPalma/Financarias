@@ -13,7 +13,7 @@ public sealed record MonthlyRate
     public bool IsZero => Value == 0m;
 
     public static MonthlyRate FromFraction(decimal value) =>
-        value >= 0m ? new MonthlyRate(value) : throw new InvalidMonthlyRateException(value);
+        value >= 0m ? new MonthlyRate(value) : throw AnalyticsErrors.MonthlyRate(value);
 
     public static MonthlyRate FromPercent(decimal percent) => FromFraction(percent / 100m);
 

@@ -21,7 +21,7 @@ public sealed partial record Cnpj
     /// <summary>Cria um <see cref="Cnpj"/> a partir de uma entrada já validada; lança se inválida.</summary>
     public static Cnpj Create(string? input)
     {
-        return !TryCreate(input, out var cnpj) ? throw new InvalidCnpjException(input) : cnpj;
+        return !TryCreate(input, out var cnpj) ? throw LegalEntityErrors.Cnpj(input) : cnpj;
     }
 
     /// <summary>Tenta criar um <see cref="Cnpj"/>; retorna false em vez de lançar quando a entrada é inválida.</summary>

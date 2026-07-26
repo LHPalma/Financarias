@@ -1,3 +1,4 @@
+using Financarias.Domain.Common.Exceptions;
 using Financarias.Domain.LegalEntities;
 
 namespace Financarias.Domain.UnitTests.LegalEntities;
@@ -40,7 +41,8 @@ public class CnpjTests
     public void Create_WithInvalidInput_ThrowsInvalidCnpjException(string? input)
     {
         // Act & Assert
-        Assert.Throws<InvalidCnpjException>(() => Cnpj.Create(input));
+        var exception = Assert.Throws<DomainValidationException>(() => Cnpj.Create(input));
+        Assert.Equal("legalentity.cnpj.invalid", exception.Code);
     }
 
     [Theory(DisplayName = "TryCreate retorna true e produz o CNPJ para entrada válida")]

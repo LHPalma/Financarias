@@ -1,8 +1,8 @@
 using Financarias.Domain.Addresses;
+using Financarias.Domain.Common.Exceptions;
 using Financarias.Domain.Geography;
 using Financarias.Domain.LegalEntities;
 using Financarias.Domain.MarketData.Fuel;
-using Financarias.Domain.MarketData.Fuel.Exceptions;
 
 namespace Financarias.Domain.UnitTests.MarketData.Fuel;
 
@@ -49,7 +49,8 @@ public class FuelStationTests
     public void Create_WithBlankName_ThrowsInvalidFuelStationNameException(string? name)
     {
         // Act & Assert
-        Assert.Throws<InvalidFuelStationNameException>(() => CreateStation(name!));
+        var exception = Assert.Throws<DomainValidationException>(() => CreateStation(name!));
+        Assert.Equal("fuel.station.name.required", exception.Code);
     }
 
     [Fact(DisplayName = "UpdateDetails refresca o cadastro do posto a partir da coleta mais recente")]
@@ -91,7 +92,7 @@ public class FuelStationTests
         var station = CreateStation();
 
         // Act & Assert
-        Assert.Throws<InvalidFuelStationNameException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             station.UpdateDetails(
                 "   ",
                 "VIBRA",
@@ -103,5 +104,7 @@ public class FuelStationTests
                 null,
                 null,
                 null));
+
+        Assert.Equal("fuel.station.name.required", exception.Code);
     }
 }

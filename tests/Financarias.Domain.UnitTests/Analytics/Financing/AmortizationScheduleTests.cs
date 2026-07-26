@@ -1,6 +1,6 @@
-using Financarias.Domain.Analytics;
-using Financarias.Domain.Analytics.Exceptions;
 using Financarias.Domain.Analytics.Financing;
+using Financarias.Domain.Analytics;
+using Financarias.Domain.Common.Exceptions;
 
 namespace Financarias.Domain.UnitTests.Analytics.Financing;
 
@@ -87,6 +87,7 @@ public class AmortizationScheduleTests
     public void PayoffAt_WithPeriodOutOfRange_ThrowsInvalidPayoffPeriodException(int period)
     {
         // Act & Assert
-        Assert.Throws<InvalidPayoffPeriodException>(() => Schedule.PayoffAt(period));
+        var exception = Assert.Throws<DomainValidationException>(() => Schedule.PayoffAt(period));
+        Assert.Equal("analytics.financing.payoffperiod.invalid", exception.Code);
     }
 }

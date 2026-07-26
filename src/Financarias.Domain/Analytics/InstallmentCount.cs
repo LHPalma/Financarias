@@ -16,7 +16,7 @@ public sealed record InstallmentCount
     {
         return value is >= 1 and <= Max
             ? new InstallmentCount(value)
-            : throw new InvalidInstallmentCountException(value);
+            : throw AnalyticsErrors.InstallmentCount(value);
     }
 
     public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);

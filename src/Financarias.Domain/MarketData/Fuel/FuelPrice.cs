@@ -21,7 +21,7 @@ public sealed class FuelPrice : BaseEntity<long>, IAggregateRoot
 
         if (salePrice <= 0)
         {
-            throw new InvalidFuelPriceException(salePrice);
+            throw FuelErrors.Price(salePrice);
         }
 
         FuelStation = station;
@@ -60,7 +60,7 @@ public sealed class FuelPrice : BaseEntity<long>, IAggregateRoot
     {
         if (salePrice <= 0)
         {
-            throw new InvalidFuelPriceException(salePrice);
+            throw FuelErrors.Price(salePrice);
         }
 
         SalePrice = salePrice;

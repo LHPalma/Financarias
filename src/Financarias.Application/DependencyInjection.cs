@@ -59,6 +59,12 @@ public static class DependencyInjection
             .AddScoped<IQueryHandler<SimulateFinancingQuery, FinancingSimulationResult>,
                 SimulateFinancingQueryHandler>();
 
+        services.AddSingleton<SimulateEarlyPayoffMapper>();
+        services.AddScoped<ISimulateEarlyPayoffUseCase, SimulateEarlyPayoffUseCase>();
+        services
+            .AddScoped<IQueryHandler<SimulateEarlyPayoffQuery, EarlyPayoffResult>,
+                SimulateEarlyPayoffQueryHandler>();
+
         services.AddScoped<IGetStockQuoteUseCase, GetStockQuoteUseCase>();
         services.AddScoped<IQueryHandler<GetStockQuoteQuery, StockQuoteResult?>, GetStockQuoteQueryHandler>();
 

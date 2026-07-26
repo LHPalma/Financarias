@@ -64,6 +64,13 @@ public class Query
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(input, cancellationToken);
 
+    [GraphQLName("simulateEarlyPayoff")]
+    public Task<EarlyPayoffResult> SimulateEarlyPayoffAsync(
+        SimulateEarlyPayoffRequest input,
+        ISimulateEarlyPayoffUseCase useCase,
+        CancellationToken cancellationToken) =>
+        useCase.ExecuteAsync(input, cancellationToken);
+
     [GraphQLName("stockQuote")]
     public Task<StockQuoteResult?> GetStockQuoteAsync(
         string ticker,

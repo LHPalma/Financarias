@@ -3,7 +3,7 @@ using Financarias.Domain.Analytics.Exceptions;
 
 namespace Financarias.Domain.Analytics;
 
-/// <summary>Valor nominal de um título (ex.: VNA), em reais. Deve ser positivo.</summary>
+/// <summary>Valor monetário nominal, sem moeda associada. Deve ser positivo.</summary>
 public sealed record NominalValue
 {
     private NominalValue(decimal value) => Value = value;

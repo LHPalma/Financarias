@@ -17,6 +17,10 @@ public class FinancariasDbContext(DbContextOptions<FinancariasDbContext> options
 
     IQueryable<Holiday> IApplicationDbContext.Holidays => Holidays;
 
+    IQueryable<FuelStation> IApplicationDbContext.FuelStations => FuelStations;
+
+    IQueryable<FuelPrice> IApplicationDbContext.FuelPrices => FuelPrices;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

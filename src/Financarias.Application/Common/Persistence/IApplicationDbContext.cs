@@ -1,4 +1,5 @@
 ﻿using Financarias.Domain.Holidays.Models;
+using Financarias.Domain.MarketData.Fuel;
 
 namespace Financarias.Application.Common.Persistence;
 
@@ -9,4 +10,8 @@ namespace Financarias.Application.Common.Persistence;
 public interface IApplicationDbContext
 {
     IQueryable<Holiday> Holidays { get; }
+
+    IQueryable<FuelStation> FuelStations { get; }
+
+    IQueryable<FuelPrice> FuelPrices { get; }
 }

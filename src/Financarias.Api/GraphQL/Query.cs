@@ -148,6 +148,7 @@ public class Query
         useCase.ExecuteAsync(cancellationToken);
 
     [GraphQLName("cheapestFuelPrices")]
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]

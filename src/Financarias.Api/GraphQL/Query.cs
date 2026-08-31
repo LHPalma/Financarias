@@ -13,6 +13,7 @@ using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
 using Financarias.Application.MarketData.ForeignExchange.UseCases;
 using Financarias.Application.MarketData.Fuel.DTOs.Results;
+using Financarias.Application.MarketData.Fuel.Queries;
 using Financarias.Application.MarketData.Fuel.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.UseCases;
@@ -21,6 +22,8 @@ using Financarias.Application.News.UseCases;
 using Financarias.Domain.Holidays.Models;
 using Financarias.Domain.MarketData;
 using Financarias.Domain.MarketData.Cryptos;
+using Financarias.Domain.MarketData.Fuel;
+using Financarias.Domain.MarketData.Fuel.Exceptions;
 
 namespace Financarias.Api.GraphQL;
 
@@ -143,6 +146,13 @@ public class Query
         IFindEthanolGasolineParityUseCase useCase,
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(cancellationToken);
+
+    [GraphQLName("cheapestFuelPrices")]
+    [UseProjection]
+    [UseFiltering]
+    [UseSorting]
+    public IQueryable<FuelPrice> GetCheapestFuelPricesAsync(FuelProduct product, IFuelReads reads)
+        => reads.LatestPricesByProduct(product);
 
     #endregion
 }

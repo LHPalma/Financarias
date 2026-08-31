@@ -97,6 +97,8 @@ public static class DependencyInjection
             .AddScoped<IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>>,
                 FindEthanolGasolineParityQueryHandler>();
 
+        services.AddScoped<IFuelReads, FuelReads>();
+
         return services;
     }
 }

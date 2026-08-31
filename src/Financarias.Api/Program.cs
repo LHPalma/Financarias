@@ -1,4 +1,5 @@
 using Financarias.Api.GraphQL;
+using Financarias.Api.GraphQL.Types;
 using Financarias.Application;
 using Financarias.Infrastructure;
 using Financarias.Infrastructure.Persistence;
@@ -28,6 +29,8 @@ builder.Services
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
     .AddErrorFilter<DomainErrorFilter>()
+    .AddType<FuelPriceType>()
+    .AddProjections()
     .AddFiltering()
     .AddSorting()
     .ModifyRequestOptions(options => options.ExecutionTimeout = TimeSpan.FromMinutes(10));

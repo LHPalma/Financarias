@@ -12,6 +12,8 @@ using Financarias.Application.MarketData.Cryptos.DTOs.Results;
 using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
 using Financarias.Application.MarketData.ForeignExchange.UseCases;
+using Financarias.Application.MarketData.Fuel.DTOs.Results;
+using Financarias.Application.MarketData.Fuel.UseCases;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.UseCases;
 using Financarias.Application.News;
@@ -129,6 +131,18 @@ public class Query
         Currency quote = Currency.Brl,
         int decimals = 2) =>
         useCase.ExecuteAsync(currencies, quote, decimals, cancellationToken);
+
+    #endregion
+
+    #region Fuel
+
+    [GraphQLName("ethanolGasolineParity")]
+    [UseFiltering]
+    [UseSorting]
+    public Task<IQueryable<EthanolGasolineParityResult>> GetEthanolGasolineParityAsync(
+        IFindEthanolGasolineParityUseCase useCase,
+        CancellationToken cancellationToken) =>
+        useCase.ExecuteAsync(cancellationToken);
 
     #endregion
 }

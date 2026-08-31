@@ -28,6 +28,8 @@ builder.Services
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
     .AddErrorFilter<DomainErrorFilter>()
+    .AddFiltering()
+    .AddSorting()
     .ModifyRequestOptions(options => options.ExecutionTimeout = TimeSpan.FromMinutes(10));
 
 var app = builder.Build();

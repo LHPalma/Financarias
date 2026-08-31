@@ -94,7 +94,7 @@ public static class DependencyInjection
 
         services.AddScoped<IFindEthanolGasolineParityUseCase, FindEthanolGasolineParityUseCase>();
         services
-            .AddScoped<IQueryHandler<FindEthanolGasolineParityQuery, IReadOnlyList<EthanolGasolineParityResult>>,
+            .AddScoped<IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>>,
                 FindEthanolGasolineParityQueryHandler>();
 
         return services;

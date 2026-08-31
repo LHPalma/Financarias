@@ -8,15 +8,16 @@ namespace Financarias.Application.UnitTests.MarketData.Fuel.UseCases;
 
 public class FindEthanolGasolineParityUseCaseTests
 {
-    private readonly IQueryHandler<FindEthanolGasolineParityQuery, IReadOnlyList<EthanolGasolineParityResult>> _handler =
-        Substitute.For<IQueryHandler<FindEthanolGasolineParityQuery, IReadOnlyList<EthanolGasolineParityResult>>>();
+    private readonly IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>> _handler =
+        Substitute.For<IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>>>();
 
     [Fact(DisplayName = "Executa a query de paridade e devolve o resultado do handler")]
     public async Task Execute_DelegatesToHandler()
     {
         // Arrange
-        IReadOnlyList<EthanolGasolineParityResult> expected =
-            [new EthanolGasolineParityResult("Posto Copacabana", "IPIRANGA", "CRUZEIRO DO SUL", "AC", 3.50m, 5.00m, 0.70m, false)];
+        IQueryable<EthanolGasolineParityResult> expected =
+            new[] { new EthanolGasolineParityResult("Posto Copacabana", "IPIRANGA", "CRUZEIRO DO SUL", "AC", 3.50m, 5.00m, 0.70m, false) }
+                .AsQueryable();
         _handler.HandleAsync(Arg.Any<FindEthanolGasolineParityQuery>(), Arg.Any<CancellationToken>()).Returns(expected);
         var useCase = new FindEthanolGasolineParityUseCase(_handler);
 

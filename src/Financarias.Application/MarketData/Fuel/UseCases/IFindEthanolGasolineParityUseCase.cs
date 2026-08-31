@@ -9,5 +9,5 @@ namespace Financarias.Application.MarketData.Fuel.UseCases;
 /// </summary>
 public interface IFindEthanolGasolineParityUseCase
 {
-    Task<IReadOnlyList<EthanolGasolineParityResult>> ExecuteAsync(CancellationToken cancellationToken = default);
+    Task<IQueryable<EthanolGasolineParityResult>> ExecuteAsync(CancellationToken cancellationToken = default);
 }

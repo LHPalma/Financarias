@@ -5,9 +5,9 @@ using Financarias.Application.MarketData.Fuel.Queries;
 namespace Financarias.Application.MarketData.Fuel.UseCases;
 
 public class FindEthanolGasolineParityUseCase(
-    IQueryHandler<FindEthanolGasolineParityQuery, IReadOnlyList<EthanolGasolineParityResult>> handler
+    IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>> handler
 ) : IFindEthanolGasolineParityUseCase
 {
-    public Task<IReadOnlyList<EthanolGasolineParityResult>> ExecuteAsync(CancellationToken cancellationToken = default) =>
+    public Task<IQueryable<EthanolGasolineParityResult>> ExecuteAsync(CancellationToken cancellationToken = default) =>
         handler.HandleAsync(new FindEthanolGasolineParityQuery(), cancellationToken);
 }

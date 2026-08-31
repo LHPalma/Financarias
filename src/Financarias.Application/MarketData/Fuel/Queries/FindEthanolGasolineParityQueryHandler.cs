@@ -8,9 +8,9 @@ namespace Financarias.Application.MarketData.Fuel.Queries;
 
 public sealed class FindEthanolGasolineParityQueryHandler(
     IApplicationDbContext dbContext
-) : IQueryHandler<FindEthanolGasolineParityQuery, IReadOnlyList<EthanolGasolineParityResult>>
+) : IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>>
 {
-    public async Task<IReadOnlyList<EthanolGasolineParityResult>> HandleAsync(
+    public async Task<IQueryable<EthanolGasolineParityResult>> HandleAsync(
         FindEthanolGasolineParityQuery query,
         CancellationToken cancellationToken = default)
     {
@@ -31,7 +31,9 @@ public sealed class FindEthanolGasolineParityQueryHandler(
             })
             .Where(pair => pair.Ethanol is not null && pair.Gasoline is not null);
 
-        return [.. pairs
+        // [TECH-DEBT] - TDR-001: filtro do GraphQL roda em memória, não vira WHERE no Postgres.
+        // Ver docs/debt/0001-ethanol-gasoline-parity-in-memory-filter.md
+        return pairs
             .Select(pair =>
             {
                 var ratio = EthanolGasolineParity.Ratio(pair.Ethanol!.SalePrice, pair.Gasoline!.SalePrice);
@@ -44,6 +46,7 @@ public sealed class FindEthanolGasolineParityQueryHandler(
                     GasolinePrice: pair.Gasoline.SalePrice,
                     Ratio: ratio,
                     IsEthanolAdvantageous: EthanolGasolineParity.IsEthanolAdvantageous(ratio));
-            })];
+            })
+            .AsQueryable();
     }
 }

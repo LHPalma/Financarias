@@ -9,4 +9,10 @@ public interface IFuelReads
 
     Task<IQueryable<BrandAveragePriceResult>> AveragePricesByBrand(
         FuelProduct product, string? state = null, CancellationToken cancellationToken = default);
+
+    Task<IQueryable<StateAveragePriceResult>> AveragePriceByState(
+        FuelProduct product, CancellationToken cancellationToken = default);
+
+    Task<IQueryable<MunicipalityAveragePriceResult>> AveragePriceByMunicipality(
+        FuelProduct product, string? state = null, CancellationToken cancellationToken = default);
 }

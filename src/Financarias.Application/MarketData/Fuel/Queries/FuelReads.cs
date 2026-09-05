@@ -37,4 +37,38 @@ public class FuelReads(IApplicationDbContext dbContext) : IFuelReads
 
         return results.AsQueryable();
     }
+
+    public async Task<IQueryable<StateAveragePriceResult>> AveragePriceByState(
+        FuelProduct product, CancellationToken cancellationToken = default)
+    {
+        // Mesmo motivo do AveragePricesByBrand: AveragePrice/StationCount são agregados, não traduzem
+        // em filtro/ordenação pós-projeção. Resultado pequeno (no máximo ~27 estados) — materializa.
+        var results = await LatestPricesByProduct(product)
+            .GroupBy(p => p.FuelStation.State)
+            .Select(g => new StateAveragePriceResult(
+                State: g.Key,
+                AveragePrice: g.Average(p => p.SalePrice),
+                StationCount: g.Count()))
+            .ToListAsync(cancellationToken);
+
+        return results.AsQueryable();
+    }
+
+    public async Task<IQueryable<MunicipalityAveragePriceResult>> AveragePriceByMunicipality(
+        FuelProduct product, string? state = null, CancellationToken cancellationToken = default)
+    {
+        // Mesmo motivo do AveragePricesByBrand: AveragePrice/StationCount são agregados, não traduzem
+        // em filtro/ordenação pós-projeção. Resultado pequeno — materializa.
+        var results = await LatestPricesByProduct(product)
+            .Where(p => state == null || p.FuelStation.State == state)
+            .GroupBy(p => new { p.FuelStation.Municipality, p.FuelStation.State })
+            .Select(g => new MunicipalityAveragePriceResult(
+                Municipality: g.Key.Municipality,
+                State: g.Key.State,
+                AveragePrice: g.Average(p => p.SalePrice),
+                StationCount: g.Count()))
+            .ToListAsync(cancellationToken);
+
+        return results.AsQueryable();
+    }
 }

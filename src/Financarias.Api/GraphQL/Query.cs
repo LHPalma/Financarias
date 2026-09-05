@@ -162,5 +162,21 @@ public class Query
         FuelProduct product, string? state, IFuelReads reads, CancellationToken cancellationToken) =>
         reads.AveragePricesByBrand(product, state, cancellationToken);
 
+    [GraphQLName("averagePriceByState")]
+    [UsePaging]
+    [UseFiltering]
+    [UseSorting]
+    public Task<IQueryable<StateAveragePriceResult>> GetAveragePriceByStateAsync(
+        FuelProduct product, IFuelReads reads, CancellationToken cancellationToken) =>
+        reads.AveragePriceByState(product, cancellationToken);
+
+    [GraphQLName("averagePriceByMunicipality")]
+    [UsePaging]
+    [UseFiltering]
+    [UseSorting]
+    public Task<IQueryable<MunicipalityAveragePriceResult>> GetAveragePriceByMunicipalityAsync(
+        FuelProduct product, string? state, IFuelReads reads, CancellationToken cancellationToken) =>
+        reads.AveragePriceByMunicipality(product, state, cancellationToken);
+
     #endregion
 }

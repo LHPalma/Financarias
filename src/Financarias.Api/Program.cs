@@ -33,7 +33,11 @@ builder.Services
     .AddProjections()
     .AddFiltering()
     .AddSorting()
-    .ModifyRequestOptions(options => options.ExecutionTimeout = TimeSpan.FromMinutes(10));
+    .ModifyRequestOptions(options =>
+    {
+        options.ExecutionTimeout = TimeSpan.FromMinutes(10);
+        options.IncludeExceptionDetails = builder.Environment.IsDevelopment();
+    });
 
 var app = builder.Build();
 

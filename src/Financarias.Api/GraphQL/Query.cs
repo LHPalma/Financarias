@@ -23,7 +23,6 @@ using Financarias.Domain.Holidays.Models;
 using Financarias.Domain.MarketData;
 using Financarias.Domain.MarketData.Cryptos;
 using Financarias.Domain.MarketData.Fuel;
-using Financarias.Domain.MarketData.Fuel.Exceptions;
 
 namespace Financarias.Api.GraphQL;
 
@@ -154,6 +153,14 @@ public class Query
     [UseSorting]
     public IQueryable<FuelPrice> GetCheapestFuelPricesAsync(FuelProduct product, IFuelReads reads)
         => reads.LatestPricesByProduct(product);
+
+    [GraphQLName("averagePricesByBrand")]
+    [UsePaging]
+    [UseFiltering]
+    [UseSorting]
+    public IQueryable<BrandAveragePriceResult> GetAveragePricesByBrandAsync(
+        FuelProduct product, string? state, IFuelReads reads) =>
+        reads.AveragePricesByBrand(product, state);
 
     #endregion
 }

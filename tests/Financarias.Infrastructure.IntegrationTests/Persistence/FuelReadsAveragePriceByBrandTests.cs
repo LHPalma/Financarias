@@ -72,7 +72,7 @@ public class FuelReadsAveragePriceByBrandTests : IAsyncLifetime
         // Act
         await using var readContext = CreateContext();
         var reads = new FuelReads(readContext);
-        var result = await reads.AveragePricesByBrand(FuelProduct.Gasoline, "SP").ToListAsync();
+        var result = (await reads.AveragePricesByBrand(FuelProduct.Gasoline, "SP")).ToList();
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -107,7 +107,7 @@ public class FuelReadsAveragePriceByBrandTests : IAsyncLifetime
         // Act
         await using var readContext = CreateContext();
         var reads = new FuelReads(readContext);
-        var result = await reads.AveragePricesByBrand(FuelProduct.Gasoline).ToListAsync();
+        var result = (await reads.AveragePricesByBrand(FuelProduct.Gasoline)).ToList();
 
         // Assert: mesma bandeira, dois estados, duas linhas separadas — nunca uma média nacional
         Assert.Equal(2, result.Count);

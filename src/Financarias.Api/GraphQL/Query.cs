@@ -158,9 +158,9 @@ public class Query
     [UsePaging]
     [UseFiltering]
     [UseSorting]
-    public IQueryable<BrandAveragePriceResult> GetAveragePricesByBrandAsync(
-        FuelProduct product, string? state, IFuelReads reads) =>
-        reads.AveragePricesByBrand(product, state);
+    public Task<IQueryable<BrandAveragePriceResult>> GetAveragePricesByBrandAsync(
+        FuelProduct product, string? state, IFuelReads reads, CancellationToken cancellationToken) =>
+        reads.AveragePricesByBrand(product, state, cancellationToken);
 
     #endregion
 }

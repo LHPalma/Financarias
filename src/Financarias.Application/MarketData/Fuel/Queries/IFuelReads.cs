@@ -7,5 +7,6 @@ public interface IFuelReads
 {
     IQueryable<FuelPrice> LatestPricesByProduct(FuelProduct product);
 
-    IQueryable<BrandAveragePriceResult> AveragePricesByBrand(FuelProduct product, string? state = null);
+    Task<IQueryable<BrandAveragePriceResult>> AveragePricesByBrand(
+        FuelProduct product, string? state = null, CancellationToken cancellationToken = default);
 }

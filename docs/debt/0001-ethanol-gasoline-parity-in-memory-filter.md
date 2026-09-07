@@ -31,3 +31,7 @@ Reescrever a consulta sem `GroupBy`, usando subquery correlacionada com `MAX(col
 ## Quando resolver
 
 Se este endpoint virar consumo frequente (dashboard, polling, client público de verdade) — hoje é uso pontual/exploratório. Reavaliar também se a base ANP crescer o suficiente pra "~138 mil linhas por chamada" deixar de ser tolerável.
+
+## Atualização (2026-09-06)
+
+`[UsePaging]` foi adicionado ao resolver pra suportar a tela `fuel/parity.tsx` do app mobile (que só precisa dos top-N postos por `ratio` num estado, não da base inteira). Isso corta o payload devolvido ao cliente via `first`/`after`, mas **não** resolve esta dívida — o `Skip`/`Take` do HotChocolate roda sobre a lista já materializada em memória (depois do `Include` + `ToListAsync` do handler), então as ~138 mil linhas continuam sendo lidas do Postgres a cada chamada, independente do tamanho da página pedida.

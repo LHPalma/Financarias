@@ -139,6 +139,7 @@ public class Query
     #region Fuel
 
     [GraphQLName("ethanolGasolineParity")]
+    [UsePaging]
     [UseFiltering]
     [UseSorting]
     public Task<IQueryable<EthanolGasolineParityResult>> GetEthanolGasolineParityAsync(

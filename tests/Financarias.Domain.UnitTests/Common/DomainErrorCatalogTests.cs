@@ -38,6 +38,7 @@ public class DomainErrorCatalogTests
             "legalentity.cnpj.invalid",
             "stock.ticker.invalid",
             "identity.user.name.required",
+            "identity.user.email.duplicate",
         ];
 
         // Act

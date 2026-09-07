@@ -45,6 +45,7 @@ builder.Services.AddIntegrations(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HeaderCurrentUser>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services
     .AddGraphQLServer()

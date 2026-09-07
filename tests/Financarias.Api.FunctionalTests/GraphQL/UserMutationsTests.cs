@@ -1,11 +1,14 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Financarias.Infrastructure.Persistence;
+using Financarias.Infrastructure.Persistence.Interceptors;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
 
 namespace Financarias.Api.FunctionalTests.GraphQL;
@@ -28,10 +31,24 @@ public class UserMutationsTests : IAsyncLifetime
             builder.ConfigureAppConfiguration((_, config) =>
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["ConnectionStrings:Default"] = _postgres.GetConnectionString(),
                     ["Integrations:ViaCep:BaseUrl"] = "https://viacep.com.br/ws",
                     ["Integrations:Anbima:BaseUrl"] = "https://www.anbima.com.br"
                 }));
+
+            // A connection string NAO pode vir por ConfigureAppConfiguration: em hosting minimo
+            // esse callback roda antes de o CreateBuilder carregar o appsettings.json, entao o
+            // Host=localhost;Port=5432 do arquivo vence e a aplicacao fala com o banco local em
+            // vez do container. ConfigureTestServices roda depois do registro da aplicacao.
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<DbContextOptions<FinancariasDbContext>>();
+
+                services.AddDbContext<FinancariasDbContext>((provider, options) =>
+                    options
+                        .UseNpgsql(_postgres.GetConnectionString())
+                        .UseSnakeCaseNamingConvention()
+                        .AddInterceptors(provider.GetRequiredService<AuditableEntityInterceptor>()));
+            });
         });
 
         using var scope = _factory.Services.CreateScope();

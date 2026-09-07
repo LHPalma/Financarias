@@ -40,10 +40,16 @@ public class DomainErrorCatalogTests
         ];
 
         // Act
-        var codes = Catalog.Select(entry => entry.Code);
+        var codes = Catalog.Select(entry => entry.Code).ToList();
+
+        var unregistered = codes.Except(expected).ToList();
+        var stale = expected.Except(codes).ToList();
 
         // Assert
-        Assert.Equal(expected, codes);
+        Assert.True(
+            unregistered.Count == 0 && stale.Count == 0,
+            $"Códigos criados e não registrados: [{string.Join(", ", unregistered)}]. " +
+            $"Códigos registrados que não existem mais: [{string.Join(", ", stale)}].");
     }
 
     [Fact(DisplayName = "Nenhum código é usado por duas invariantes diferentes")]

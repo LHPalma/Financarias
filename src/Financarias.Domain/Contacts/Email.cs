@@ -14,6 +14,12 @@ public sealed record Email
 
     public string Value { get; }
 
+    /// <summary>Parte após o último "@" — o host do endereço (ex.: "sub.example.com.br").</summary>
+    public string Host => Value[(Value.LastIndexOf('@') + 1)..];
+
+    /// <summary>Parte antes do último "@" (ex.: "luiz.palma+tag").</summary>
+    public string LocalPart => Value[..Value.LastIndexOf('@')];
+
     /// <summary>Cria um <see cref="Email" /> a partir de uma entrada crua; lança se inválida.</summary>
     public static Email Create(string? input) =>
         !TryCreate(input, out var email) ? throw ContactsErrors.Email(input) : email;

@@ -19,6 +19,19 @@ public class EmailTests
         Assert.Equal(expected, email.Value);
     }
 
+    [Theory(DisplayName = "Host e parte local são separados pelo último arroba")]
+    [InlineData("luiz@example.com", "luiz", "example.com")]
+    [InlineData("Luiz.Palma+tag@Sub.Example.COM.br", "luiz.palma+tag", "sub.example.com.br")]
+    [InlineData("\"a@b\"@example.com", "\"a@b\"", "example.com")]
+    public void HostAndLocalPart_SplitOnLastAtSign(string input, string expectedLocalPart, string expectedHost)
+    {
+        // Act
+        var email = Email.Create(input);
+
+        // Assert
+        Assert.Equal(expectedLocalPart, email.LocalPart);
+        Assert.Equal(expectedHost, email.Host);
+    }
     [Theory(DisplayName = "Create lança com o código de e-mail inválido")]
     [InlineData(null)]
     [InlineData("")]

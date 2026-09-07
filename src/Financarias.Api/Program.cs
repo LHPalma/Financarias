@@ -1,12 +1,22 @@
 using Financarias.Api.GraphQL;
 using Financarias.Api.GraphQL.Types;
+using Financarias.Api.Security;
 using Financarias.Application;
+using Financarias.Application.Common.Security;
 using Financarias.Infrastructure;
 using Financarias.Infrastructure.Persistence;
 using Financarias.Integrations;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsProduction())
+{
+    throw new InvalidOperationException(
+        "Autenticação real não implementada: a identidade do usuário corrente vem de um header não " +
+        "verificado (HeaderCurrentUser), registrado apenas fora de Production. Ver " +
+        "docs/srs/2026-07-26-identity-users.md §7.");
+}
 
 builder.Host.UseDefaultServiceProvider(options =>
 {
@@ -32,6 +42,9 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddIntegrations(builder.Configuration);
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HeaderCurrentUser>();
 
 builder.Services
     .AddGraphQLServer()

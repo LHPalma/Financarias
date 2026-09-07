@@ -219,7 +219,7 @@ O efeito é que este projeto **não sobe em Production** enquanto não houver au
 
 ## 8. Rastreabilidade (requisito → commit)
 
-Branch `feat/identity-users`, 13 commits, ainda não mergeada.
+Entregue em `feat/identity-users` e mergeada em `main` em 2026-09-07 (PR #28, merge commit `0500a15`, sem squash nem rebase justamente para os hashes abaixo continuarem válidos).
 
 | Commit | Entrega | Requisitos |
 |---|---|---|

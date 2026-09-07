@@ -27,7 +27,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasConversion<string>();
 
         builder.Property<string>("EmailHost")
-            .HasComputedColumnSql("split_part(email, '@', 2)", stored: true);
+            .HasComputedColumnSql("split_part(email, '@', -1)", stored: true);
 
         builder.HasIndex(u => u.Email)
             .IsUnique();

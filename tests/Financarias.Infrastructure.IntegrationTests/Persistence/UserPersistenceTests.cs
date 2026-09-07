@@ -60,11 +60,13 @@ public class UserPersistenceTests : IAsyncLifetime
         await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
     }
 
-    [Fact(DisplayName = "O Postgres calcula email_host a partir do e-mail gravado")]
-    public async Task EmailHost_IsComputedByThePostgres()
+    [Theory(DisplayName = "O Postgres calcula email_host quebrando no último arroba")]
+    [InlineData("luiz@mail.sub.example.com.br", "mail.sub.example.com.br")]
+    [InlineData("\"a@b\"@example.com", "example.com")]
+    public async Task EmailHost_IsComputedByThePostgres(string address, string expectedHost)
     {
         // Arrange
-        var user = User.Create("Luiz", Email.Create("luiz@mail.sub.example.com.br"));
+        var user = User.Create("Luiz", Email.Create(address));
 
         await using (var write = CreateContext())
         {
@@ -80,7 +82,7 @@ public class UserPersistenceTests : IAsyncLifetime
             .SingleAsync();
 
         // Assert
-        Assert.Equal("mail.sub.example.com.br", host);
+        Assert.Equal(expectedHost, host);
     }
 
     private FinancariasDbContext CreateContext()

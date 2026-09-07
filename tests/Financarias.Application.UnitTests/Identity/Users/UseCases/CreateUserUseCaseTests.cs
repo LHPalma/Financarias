@@ -1,5 +1,6 @@
 using Financarias.Application.Common.Messaging;
 using Financarias.Application.Identity.Users.Commands;
+using Financarias.Application.Identity.Users.DTOs.Requests;
 using Financarias.Application.Identity.Users.Mappers;
 using Financarias.Application.Identity.Users.UseCases;
 using Financarias.Domain.Common.Exceptions;
@@ -21,7 +22,7 @@ public class CreateUserUseCaseTests
         HandlerReturns(User.Create("Luiz Palma", Email.Create("luiz@example.com")));
 
         // Act
-        await CreateUseCase().ExecuteAsync("Luiz Palma", "  Luiz@Example.COM  ");
+        await CreateUseCase().ExecuteAsync(new CreateUserRequest("Luiz Palma", "  Luiz@Example.COM  "));
 
         // Assert
         await _handler.Received(1).HandleAsync(
@@ -37,7 +38,7 @@ public class CreateUserUseCaseTests
         HandlerReturns(user);
 
         // Act
-        var result = await CreateUseCase().ExecuteAsync("Luiz Palma", "luiz@example.com");
+        var result = await CreateUseCase().ExecuteAsync(new CreateUserRequest("Luiz Palma", "luiz@example.com"));
 
         // Assert
         Assert.Equal(user.Id, result.Id);
@@ -51,7 +52,7 @@ public class CreateUserUseCaseTests
     {
         // Act
         var exception = await Assert.ThrowsAsync<DomainValidationException>(() =>
-            CreateUseCase().ExecuteAsync("Luiz Palma", "nao-e-email"));
+            CreateUseCase().ExecuteAsync(new CreateUserRequest("Luiz Palma", "nao-e-email")));
 
         // Assert
         Assert.Equal("contacts.email.invalid", exception.Code);

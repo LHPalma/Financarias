@@ -1,5 +1,8 @@
 ﻿using Financarias.Application.Holidays.Import;
 using Financarias.Application.Holidays.UseCases;
+using Financarias.Application.Identity.Users.DTOs.Requests;
+using Financarias.Application.Identity.Users.DTOs.Results;
+using Financarias.Application.Identity.Users.UseCases;
 using Financarias.Application.MarketData.Fuel.Import;
 using Financarias.Application.MarketData.Fuel.UseCases;
 
@@ -12,6 +15,13 @@ public class Mutation
         IImportHolidaysUseCase useCase,
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(cancellationToken);
+
+    [GraphQLName("createUser")]
+    public Task<UserResult> CreateUserAsync(
+        CreateUserRequest input,
+        ICreateUserUseCase useCase,
+        CancellationToken cancellationToken) =>
+        useCase.ExecuteAsync(input, cancellationToken);
 
     [GraphQLName("importFuelPrices")]
     public Task<FuelImportResult> ImportFuelPricesAsync(

@@ -1,5 +1,6 @@
-﻿using Financarias.Application.Common.Messaging;
+using Financarias.Application.Common.Messaging;
 using Financarias.Application.Identity.Users.Commands;
+using Financarias.Application.Identity.Users.DTOs.Requests;
 using Financarias.Application.Identity.Users.DTOs.Results;
 using Financarias.Application.Identity.Users.Mappers;
 using Financarias.Domain.Contacts;
@@ -12,10 +13,12 @@ public class CreateUserUseCase(
     UserMapper mapper
 ) : ICreateUserUseCase
 {
-    public async Task<UserResult> ExecuteAsync(string name, string email, CancellationToken cancellationToken = default)
+    public async Task<UserResult> ExecuteAsync(
+        CreateUserRequest request,
+        CancellationToken cancellationToken = default)
     {
         var user = await handler.HandleAsync(
-            new CreateUserCommand(name, Email.Create(email)),
+            new CreateUserCommand(request.Name, Email.Create(request.Email)),
             cancellationToken);
 
         return mapper.ToResult(user);

@@ -53,6 +53,7 @@ builder.Services
     .AddMutationType<Mutation>()
     .AddErrorFilter<DomainErrorFilter>()
     .AddType<FuelPriceType>()
+    .AddType<UserType>()
     .AddProjections()
     .AddFiltering()
     .AddSorting()

@@ -13,6 +13,7 @@ using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Common.Messaging;
 using Financarias.Application.Identity.Users.Commands;
 using Financarias.Application.Identity.Users.Mappers;
+using Financarias.Application.Identity.Users.Queries;
 using Financarias.Application.Identity.Users.UseCases;
 using Financarias.Application.Holidays.Queries;
 using Financarias.Application.Holidays.UseCases;
@@ -104,6 +105,7 @@ public static class DependencyInjection
         services.AddSingleton<UserMapper>();
         services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();
         services.AddScoped<ICommandHandler<CreateUserCommand, User>, CreateUserCommandHandler>();
+        services.AddScoped<IUserReads, UserReads>();
 
         services.AddScoped<IFuelReads, FuelReads>();
 

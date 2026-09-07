@@ -138,6 +138,29 @@ public class UserMutationsTests : IAsyncLifetime
             .EnumerateArray().Select(u => u.GetProperty("id").GetGuid()).ToList();
     }
 
+
+    [Fact(DisplayName = "activateUser traz o usuário de volta para a listagem padrão")]
+    public async Task ActivateUser_BringsUserBackToDefaultListing()
+    {
+        // Arrange
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Volta", email: "volta-{{_tag}}@example.com" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+
+        await ExecuteAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");
+        Assert.DoesNotContain(id, await ListedIdsAsync("{ users { id } }"));
+
+        // Act
+        var activated = await ExecuteAsync($$"""mutation { activateUser(id: "{{id}}") { id status } }""");
+
+        // Assert
+        Assert.Equal(
+            "ACTIVE",
+            activated.GetProperty("data").GetProperty("activateUser").GetProperty("status").GetString());
+
+        Assert.Contains(id, await ListedIdsAsync("{ users { id } }"));
+    }
+
     private static string? FirstErrorCode(JsonElement response) =>
         response.GetProperty("errors")[0].GetProperty("extensions").GetProperty("code").GetString();
 

@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # Claude Code instructions (local only, not versioned)
 CLAUDE.md
+/.claude

@@ -36,7 +36,8 @@ public class DomainErrorCatalogTests
             "fuel.station.name.required",
             "holiday.name.required",
             "legalentity.cnpj.invalid",
-            "stock.ticker.invalid"
+            "stock.ticker.invalid",
+            "identity.user.name.required",
         ];
 
         // Act
@@ -59,7 +60,8 @@ public class DomainErrorCatalogTests
         var duplicates = Catalog
             .GroupBy(entry => entry.Code)
             .Where(group => group.Count() > 1)
-            .Select(group => $"{group.Key}: {string.Join(", ", group.Select(entry => $"{entry.Catalog}.{entry.Field}"))}")
+            .Select(group =>
+                $"{group.Key}: {string.Join(", ", group.Select(entry => $"{entry.Catalog}.{entry.Field}"))}")
             .ToList();
 
         // Assert

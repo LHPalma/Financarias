@@ -193,13 +193,6 @@ type InstallmentBreakdownResult {
   amortization: Decimal!
   outstandingBalance: Decimal!
 }
-
-type EarlyPayoffResult {
-  atInstallment: Int!
-  outstandingBalance: Decimal!
-  installmentsRemaining: Int!
-  interestSaved: Decimal!
-}
 ```
 
 **Nome `simulateFinancing`, não `simulateVehicleFinancing`:** a matemática não sabe que o bem é um carro. O imobiliário está fora do escopo por *indexador* (IPCA/TR) e por *sistema* (SAC), não por incompatibilidade com a Price. Renomear API pública depois é caro; nascer neutro é grátis.

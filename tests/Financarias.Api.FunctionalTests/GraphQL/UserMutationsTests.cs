@@ -97,6 +97,47 @@ public class UserMutationsTests : IAsyncLifetime
         Assert.Equal("identity.user.email.duplicate", FirstErrorCode(response));
     }
 
+
+    [Fact(DisplayName = "deactivateUser tira o usuário de users, mas ele volta com includeInactive")]
+    public async Task DeactivateUser_RemovesFromDefaultListing()
+    {
+        // Arrange
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Some", email: "some-{{_tag}}@example.com" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+
+        // Act
+        var deactivated = await ExecuteAsync(
+            $$"""mutation { deactivateUser(id: "{{id}}") { id status } }""");
+
+        // Assert
+        Assert.Equal(
+            "INACTIVE",
+            deactivated.GetProperty("data").GetProperty("deactivateUser").GetProperty("status").GetString());
+
+        Assert.DoesNotContain(id, await ListedIdsAsync("{ users { id } }"));
+        Assert.Contains(id, await ListedIdsAsync("{ users(includeInactive: true) { id } }"));
+    }
+
+    [Fact(DisplayName = "deactivateUser em id inexistente devolve identity.user.notfound")]
+    public async Task DeactivateUser_UnknownId_ReturnsDomainErrorCode()
+    {
+        // Act
+        var response = await ExecuteAsync(
+            $$"""mutation { deactivateUser(id: "{{Guid.CreateVersion7()}}") { id } }""");
+
+        // Assert
+        Assert.Equal("identity.user.notfound", FirstErrorCode(response));
+    }
+
+    private async Task<List<Guid>> ListedIdsAsync(string query)
+    {
+        var response = await ExecuteAsync(query);
+
+        return response.GetProperty("data").GetProperty("users")
+            .EnumerateArray().Select(u => u.GetProperty("id").GetGuid()).ToList();
+    }
+
     private static string? FirstErrorCode(JsonElement response) =>
         response.GetProperty("errors")[0].GetProperty("extensions").GetProperty("code").GetString();
 

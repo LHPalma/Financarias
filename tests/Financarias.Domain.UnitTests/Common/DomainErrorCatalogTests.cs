@@ -39,6 +39,7 @@ public class DomainErrorCatalogTests
             "stock.ticker.invalid",
             "identity.user.name.required",
             "identity.user.email.duplicate",
+            "identity.user.notfound",
         ];
 
         // Act

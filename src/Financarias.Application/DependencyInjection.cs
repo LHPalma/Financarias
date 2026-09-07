@@ -105,6 +105,8 @@ public static class DependencyInjection
         services.AddSingleton<UserMapper>();
         services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();
         services.AddScoped<ICommandHandler<CreateUserCommand, User>, CreateUserCommandHandler>();
+        services.AddScoped<IDeactivateUserUseCase, DeactivateUserUseCase>();
+        services.AddScoped<ICommandHandler<DeactivateUserCommand, User>, DeactivateUserCommandHandler>();
         services.AddScoped<IUserReads, UserReads>();
 
         services.AddScoped<IFuelReads, FuelReads>();

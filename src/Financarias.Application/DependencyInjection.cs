@@ -11,6 +11,10 @@ using Financarias.Application.Analytics.Mappers;
 using Financarias.Application.Analytics.Queries;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Common.Messaging;
+using Financarias.Application.Identity.Users.Commands;
+using Financarias.Application.Identity.Users.Mappers;
+using Financarias.Application.Identity.Users.Queries;
+using Financarias.Application.Identity.Users.UseCases;
 using Financarias.Application.Holidays.Queries;
 using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.MarketData.Cryptos.DTOs.Results;
@@ -30,6 +34,7 @@ using Financarias.Application.MarketData.Stocks.UseCases;
 using Financarias.Application.News;
 using Financarias.Application.News.Queries;
 using Financarias.Application.News.UseCases;
+using Financarias.Domain.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Financarias.Application;
@@ -96,6 +101,15 @@ public static class DependencyInjection
         services
             .AddScoped<IQueryHandler<FindEthanolGasolineParityQuery, IQueryable<EthanolGasolineParityResult>>,
                 FindEthanolGasolineParityQueryHandler>();
+
+        services.AddSingleton<UserMapper>();
+        services.AddScoped<ICreateUserUseCase, CreateUserUseCase>();
+        services.AddScoped<ICommandHandler<CreateUserCommand, User>, CreateUserCommandHandler>();
+        services.AddScoped<IActivateUserUseCase, ActivateUserUseCase>();
+        services.AddScoped<ICommandHandler<ActivateUserCommand, User>, ActivateUserCommandHandler>();
+        services.AddScoped<IDeactivateUserUseCase, DeactivateUserUseCase>();
+        services.AddScoped<ICommandHandler<DeactivateUserCommand, User>, DeactivateUserCommandHandler>();
+        services.AddScoped<IUserReads, UserReads>();
 
         services.AddScoped<IFuelReads, FuelReads>();
 

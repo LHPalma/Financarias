@@ -8,6 +8,8 @@ using Financarias.Application.Analytics.Financing.DTOs.Results;
 using Financarias.Application.Analytics.Financing.UseCases;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Holidays.UseCases;
+using Financarias.Application.Common.Security;
+using Financarias.Application.Identity.Users.Queries;
 using Financarias.Application.MarketData.Cryptos.DTOs.Results;
 using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
@@ -20,6 +22,7 @@ using Financarias.Application.MarketData.Stocks.UseCases;
 using Financarias.Application.News;
 using Financarias.Application.News.UseCases;
 using Financarias.Domain.Holidays.Models;
+using Financarias.Domain.Identity;
 using Financarias.Domain.MarketData;
 using Financarias.Domain.MarketData.Cryptos;
 using Financarias.Domain.MarketData.Fuel;
@@ -178,6 +181,32 @@ public class Query
     public Task<IQueryable<MunicipalityAveragePriceResult>> GetAveragePriceByMunicipalityAsync(
         FuelProduct product, string? state, IFuelReads reads, CancellationToken cancellationToken) =>
         reads.AveragePriceByMunicipality(product, state, cancellationToken);
+
+
+    #endregion
+
+    #region Identity
+
+    [GraphQLName("users")]
+    [UseProjection]
+    [UseFiltering]
+    [UseSorting]
+    public IQueryable<User> GetUsers(IUserReads reads, bool includeInactive = false) =>
+        includeInactive
+            ? reads.Users()
+            : reads.Users().Where(user => user.Status == UserStatus.Active);
+
+    [GraphQLName("user")]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<User> GetUserById(Guid id, IUserReads reads) =>
+        reads.Users().Where(user => user.Id == id);
+
+    [GraphQLName("me")]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<User> GetCurrentUser(IUserReads reads, ICurrentUser currentUser) =>
+        reads.Users().Where(user => user.Id == currentUser.UserId);
 
     #endregion
 }

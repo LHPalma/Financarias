@@ -1,5 +1,6 @@
 using Financarias.Application.Common.Persistence;
 using Financarias.Infrastructure.Persistence;
+using Financarias.Infrastructure.Persistence.Interceptors;
 using Financarias.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -13,10 +14,13 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("Default");
 
-        services.AddDbContext<FinancariasDbContext>(options =>
+        services.AddScoped<AuditableEntityInterceptor>();
+
+        services.AddDbContext<FinancariasDbContext>((provider, options) =>
             options
                 .UseNpgsql(connectionString)
-                .UseSnakeCaseNamingConvention());
+                .UseSnakeCaseNamingConvention()
+                .AddInterceptors(provider.GetRequiredService<AuditableEntityInterceptor>()));
 
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<FinancariasDbContext>());

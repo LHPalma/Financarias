@@ -41,6 +41,7 @@ Trocar identidade *declarada* por identidade *provada*. A fatia anterior entrego
 ### 2.1 Posição na arquitetura
 ```
 Domain/Identity
+├── Password                    (VO — senha crua que já passou pela política de composição)
 ├── PasswordHash                (VO — envolve a string PHC; o domínio nunca vê texto puro)
 └── User                        (+ PasswordHash)
 
@@ -78,7 +79,7 @@ Requisição autenticada: `Authorization: Bearer` → middleware do ASP.NET vali
 ## 3. Requisitos funcionais
 
 ### RF-01 — Criar usuário com senha
-`createUser(input: { name, email, password })` passa a exigir senha. O hash é calculado no caso de uso; o domínio recebe apenas o `PasswordHash`.
+`createUser(input: { name, email, password })` passa a exigir senha, que precisa cumprir a política da RN-11. O hash é calculado no caso de uso; o domínio recebe apenas o `PasswordHash`.
 
 ### RF-02 — Login
 `login(input: { email, password })` devolve um JWT de acesso e o instante de expiração. Credencial inválida lança `identity.credentials.invalid`.
@@ -108,6 +109,8 @@ Removida a trava da RN-06 anterior. Em Production o `JwtCurrentUser` é registra
 | **RN-08** | **`createUser` e `login` continuam públicos.** Um é cadastro, o outro é a porta. Todo o resto exige autenticação (RF-04). |
 | **RN-09** | **Autorização continua binária.** `[Authorize]` sem papel: qualquer usuário autenticado enxerga `users` inteiro. Limitação consciente desta fatia — papéis são fatia própria, com ADR, porque "papel no usuário" versus "permissão por recurso" é escolha com alternativa séria. |
 | **RN-10** | **Parâmetros do Argon2id: 19 MiB, 2 iterações, paralelismo 1 — medidos, não copiados.** A string PHC carrega memória, iterações e paralelismo, então subir o custo depois não invalida hashes antigos: verifica-se com os parâmetros gravados. A primeira versão desta regra dizia 64 MiB/t=3, número comum em recomendações que pressupõem implementação **nativa**. Medido com a Isopoh, que é 100% gerenciada, numa máquina de 8 núcleos: 64 MiB/t=3/p=1 custa **~900 ms para gerar e ~1200 ms para verificar** — inaceitável num login, e vetor de indisponibilidade (dez tentativas simultâneas queimam 10 s de CPU e 640 MiB). Com 19 MiB/t=2/p=1 — que é a configuração **mínima recomendada pela OWASP** para Argon2id, não um afrouxamento de conveniência — o custo cai para **~150 ms**, dentro da faixa usual de alvo. Paralelismo fica em 1: p=4 desce para ~100 ms, mas consome quatro threads por login e piora a vazão sob concorrência, que é o oposto do que se quer num servidor. |
+| **RN-11** | **Política de composição: 8 a 128 caracteres, com maiúscula, minúscula, dígito e caractere especial.** Especial é qualquer símbolo ASCII imprimível — os 32 que não são letra nem dígito. Espaço é **aceito** na senha (frase de senha é caso legítimo) mas **não satisfaz** o requisito de especial, senão um espaço acidental no fim transformaria senha fraca em "forte". Senha nunca é aparada: `Trim()` mudaria a credencial de quem usa espaço na ponta — o oposto do `Email`, onde normalizar é obrigatório. A ordem das checagens define qual erro aparece quando mais de uma regra falha: comprimento, depois maiúscula, minúscula, dígito e especial. Cada regra tem código próprio, para o cliente poder dizer *o que* corrigir. |
+| **RN-12** | **A divergência do NIST é consciente e documentada.** O NIST SP 800-63B diz que verificadores **não devem** impor regras de composição, e a OWASP acompanha. O motivo é empírico: as regras empurram para padrões previsíveis — `Password1!` satisfaz as quatro e está em qualquer dicionário de ataque —, rejeitam frases longas e fortes que não têm símbolo, e estimulam reuso da mesma senha "que atende às regras". O controle que as substituiria com ganho real é conferir contra lista de senhas vazadas (§11). A RN-11 foi mantida assim por **decisão explícita do autor, com objetivo didático**: implementar e entender a política faz parte do escopo de aprendizado do trabalho. Fica registrado para que a escolha se leia como escolha, não como desconhecimento. |
 
 ---
 
@@ -173,6 +176,7 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 | # | Commit | Depende de |
 |---|---|---|
 | 1 | VO `PasswordHash` + `IPasswordHasher` + `Argon2PasswordHasher` + pacote | — |
+| 1b | VO `Password` + política de composição + `IPasswordHasher.Hash(Password)` | 1 |
 | 2 | `User` passa a exigir `PasswordHash` + migration que limpa e cria `NOT NULL` | 1 |
 | 3 | `createUser` com senha | 2 |
 | 4 | `JwtOptions` + `ValidateOnStart` + `IAccessTokenIssuer` + `JwtAccessTokenIssuer` | — |
@@ -187,7 +191,8 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 | Nível | Cobre |
 |---|---|
 | `PasswordHashTests` | rejeita vazio e formato que não é PHC; igualdade por valor |
-| `Argon2PasswordHasherTests` | a mesma senha gera hashes **diferentes** (salt aleatório) e ambos verificam; senha errada não verifica; hash com parâmetros antigos continua verificando |
+| `Argon2PasswordHasherTests` | a mesma senha gera hashes **diferentes** (salt aleatório) e ambos verificam; senha errada não verifica; hash com parâmetros antigos continua verificando; e `Verify` aceita senha que **não passaria na política de hoje** — é por isso que ele recebe `string` e não `Password` |
+| `PasswordTests` | as seis regras da RN-11, cada uma com seu código; o conjunto de especiais conferido contra a regra que ele codifica (ASCII imprimível não alfanumérico); espaço aceito mas não contando como especial; `ToString` não vaza |
 | `UserTests` | `Create` exige `PasswordHash`; o agregado não expõe o hash |
 | `LoginCommandHandlerTests` | credencial certa emite token; e-mail inexistente, senha errada e usuário inativo devolvem **o mesmo** código (RN-03/RN-04) |
 | `JwtAccessTokenIssuerTests` | token carrega `sub` com o id; expiração bate com a configuração; assinatura confere com a chave |
@@ -211,6 +216,7 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 
 - **ADR "identidade própria em vez de ASP.NET Core Identity"** — pendente desde a fatia anterior, e esta é onde a alternativa rejeitada fica mais visível: `PasswordHasher<T>`, `SignInManager` e `UserManager` são exatamente o que estamos reconstruindo.
 - **Papéis e autorização** — fatia própria, provavelmente com ADR.
+- **Conferir senha contra lista de vazadas** — o controle que o NIST recomenda no lugar das regras de composição (RN-12). A API do Have I Been Pwned faz isso por k-anonimato: manda-se os 5 primeiros caracteres do SHA-1 e recebem-se os sufixos que batem, sem o serviço nunca ver a senha.
 - **Bloqueio por tentativas** no login.
 - **Verificação de e-mail** no cadastro.
 - **Troca e recuperação de senha.**

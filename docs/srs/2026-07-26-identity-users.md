@@ -261,14 +261,11 @@ Entregue em `feat/identity-users` e mergeada em `main` em 2026-09-07 (PR #28, me
 
 ---
 
-## 10. PR seguinte — autenticação de verdade
+## 10. Fatia seguinte — autenticação de verdade
 
-- Senha: **Argon2id**, via `Isopoh.Cryptography.Argon2` (API de alto nível, string PHC com salt embutido). **Substitui o que esta seção dizia antes** (`PasswordHasher<T>` ou BCrypt) — a escolha é do usuário e é deliberada. Nunca artesanal.
-- `login(email, password)` devolvendo JWT + refresh token; revogação por `jti`.
-- `JwtCurrentUser` substituindo o `HeaderCurrentUser` — **um arquivo**, se a RNF-04 tiver sido respeitada. A fatia entregue não deu a nenhum consumidor acesso a mais do que `Guid?`, então a promessa segue de pé.
-- `[Authorize]` nos resolvers e remoção da trava de boot da RN-06.
+Especificada em `docs/srs/2026-09-07-auth-jwt.md`. Em resumo: senha com Argon2id (`Isopoh.Cryptography.Argon2`), `login` devolvendo JWT de acesso, `JwtCurrentUser` no lugar do `HeaderCurrentUser`, `[Authorize]` nos resolvers e remoção da trava de boot da RN-06. Refresh token e revogação ficam para a fatia depois dessa.
 
-**Linha acordada sobre o que reconstruir:** o modelo é nosso (`User`, `Email`, invariantes, fluxo de login); as primitivas não. KDF, assinatura e validação de JWT, geração de token aleatório e comparação em tempo constante saem de biblioteca. Não usar ASP.NET Core Identity foi decisão consciente — `IdentityUser` é classe base e colocaria dependência da Microsoft dentro de `Financarias.Domain`, quebrando a primeira regra da arquitetura. Merece ADR própria.
+**O que aquela fatia cobra desta:** a promessa da RNF-04 de que trocar o adapter é *um arquivo*. Os únicos consumidores de `ICurrentUser` entregues aqui — o interceptor de auditoria e o resolver `me` — recebem apenas `Guid?`, então a troca não deve tocar domínio, casos de uso nem handlers. Se tocar, o problema está aqui, não lá.
 
 ---
 

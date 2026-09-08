@@ -57,7 +57,8 @@ Application/Identity/Users
 └── UseCases/{ILoginUseCase, LoginUseCase}
 
 Infrastructure/Security
-└── Argon2PasswordHasher        (Isopoh)
+├── PasswordHashingOptions      (pepper — validadas no boot)
+└── Argon2PasswordHasher        (Isopoh, com o pepper no parâmetro secret)
 
 Api/Security
 ├── JwtCurrentUser              (substitui HeaderCurrentUser)
@@ -111,6 +112,8 @@ Removida a trava da RN-06 anterior. Em Production o `JwtCurrentUser` é registra
 | **RN-10** | **Parâmetros do Argon2id: 19 MiB, 2 iterações, paralelismo 1 — medidos, não copiados.** A string PHC carrega memória, iterações e paralelismo, então subir o custo depois não invalida hashes antigos: verifica-se com os parâmetros gravados. A primeira versão desta regra dizia 64 MiB/t=3, número comum em recomendações que pressupõem implementação **nativa**. Medido com a Isopoh, que é 100% gerenciada, numa máquina de 8 núcleos: 64 MiB/t=3/p=1 custa **~900 ms para gerar e ~1200 ms para verificar** — inaceitável num login, e vetor de indisponibilidade (dez tentativas simultâneas queimam 10 s de CPU e 640 MiB). Com 19 MiB/t=2/p=1 — que é a configuração **mínima recomendada pela OWASP** para Argon2id, não um afrouxamento de conveniência — o custo cai para **~150 ms**, dentro da faixa usual de alvo. Paralelismo fica em 1: p=4 desce para ~100 ms, mas consome quatro threads por login e piora a vazão sob concorrência, que é o oposto do que se quer num servidor. |
 | **RN-11** | **Política de composição: 8 a 128 caracteres, com maiúscula, minúscula, dígito e caractere especial.** Especial é qualquer símbolo ASCII imprimível — os 32 que não são letra nem dígito. Espaço é **aceito** na senha (frase de senha é caso legítimo) mas **não satisfaz** o requisito de especial, senão um espaço acidental no fim transformaria senha fraca em "forte". Senha nunca é aparada: `Trim()` mudaria a credencial de quem usa espaço na ponta — o oposto do `Email`, onde normalizar é obrigatório. A ordem das checagens define qual erro aparece quando mais de uma regra falha: comprimento, depois maiúscula, minúscula, dígito e especial. Cada regra tem código próprio, para o cliente poder dizer *o que* corrigir. |
 | **RN-12** | **A divergência do NIST é consciente e documentada.** O NIST SP 800-63B diz que verificadores **não devem** impor regras de composição, e a OWASP acompanha. O motivo é empírico: as regras empurram para padrões previsíveis — `Password1!` satisfaz as quatro e está em qualquer dicionário de ataque —, rejeitam frases longas e fortes que não têm símbolo, e estimulam reuso da mesma senha "que atende às regras". O controle que as substituiria com ganho real é conferir contra lista de senhas vazadas (§11). A RN-11 foi mantida assim por **decisão explícita do autor, com objetivo didático**: implementar e entender a política faz parte do escopo de aprendizado do trabalho. Fica registrado para que a escolha se leia como escolha, não como desconhecimento. |
+| **RN-13** | **Pepper pelo parâmetro `secret` do Argon2, não por concatenação.** O Argon2 tem um segredo opcional na própria especificação (o `K` da RFC 9106), e a Isopoh o expõe — então o pepper entra na derivação como o algoritmo prevê, em vez de ser colado na senha antes de hashear. Verificado: o pepper **não aparece** na string PHC, o formato fica **indistinguível** do de um sistema sem pepper, e `Verify` só devolve verdadeiro com o pepper certo — sem ele, ou com outro, falha. O efeito é que um dump do banco, sozinho, é inatacável offline. A chave segue a mesma regra da RN-05: user-secrets em desenvolvimento, variável de ambiente em produção, nunca `appsettings.json`, e ausência derruba o boot. **A porta `IPasswordHasher` não muda**: `Hash(Password)` e `Verify(PasswordHash, string)` continuam idênticos, e o pepper vive inteiramente dentro do adapter — nenhum caso de uso, teste de aplicação ou resolver fica sabendo que ele existe. |
+| **RN-14** | **Pepper e salt não se substituem.** O salt é por senha, público, guardado junto do hash, e serve para derrotar rainbow table e para impedir que dois usuários com a mesma senha tenham o mesmo hash. O pepper é global, secreto, guardado fora do banco, e serve para tornar o ataque offline inviável quando **só** o banco vaza. Remover um por achar que o outro cobre é erro de categoria. |
 
 ---
 
@@ -164,6 +167,8 @@ Nenhum campo de `User` ou `UserResult` expõe o hash. O `UserType` usa `BindFiel
 - **Autorização binária.** Qualquer autenticado lista todos os usuários (RN-09).
 - **Sem bloqueio por tentativas.** Nada impede força bruta no `login` além do custo do Argon2id, que é real mas não é limite de taxa.
 - **Sem verificação de e-mail.** Alguém pode se cadastrar com e-mail de terceiro.
+- **O pepper protege contra um tipo de brecha, não contra todas.** Ele perde o valor se o atacante levar **também** o servidor de aplicação, porque é lá que a chave vive. Defende exfiltração do banco isolada — que é a forma mais comum, mas não a única.
+- **Perder o pepper torna toda senha inverificável, sem recuperação.** Nem reset por e-mail resolve o passado: os hashes antigos viram lixo permanente. O backup dessa chave passa a importar tanto quanto o backup do banco, e isso é risco operacional que o sistema não tinha antes.
 
 Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quatro devem estar escritos aqui antes de existir usuário real.
 
@@ -177,6 +182,7 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 |---|---|---|
 | 1 | VO `PasswordHash` + `IPasswordHasher` + `Argon2PasswordHasher` + pacote | — |
 | 1b | VO `Password` + política de composição + `IPasswordHasher.Hash(Password)` | 1 |
+| 1c | `PasswordHashingOptions` (pepper) validadas no boot + adapter usando o `secret` | 1 |
 | 2 | `User` passa a exigir `PasswordHash` + migration que limpa e cria `NOT NULL` | 1 |
 | 3 | `createUser` com senha | 2 |
 | 4 | `JwtOptions` + `ValidateOnStart` + `IAccessTokenIssuer` + `JwtAccessTokenIssuer` | — |
@@ -191,7 +197,8 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 | Nível | Cobre |
 |---|---|
 | `PasswordHashTests` | rejeita vazio e formato que não é PHC; igualdade por valor |
-| `Argon2PasswordHasherTests` | a mesma senha gera hashes **diferentes** (salt aleatório) e ambos verificam; senha errada não verifica; hash com parâmetros antigos continua verificando; e `Verify` aceita senha que **não passaria na política de hoje** — é por isso que ele recebe `string` e não `Password` |
+| `PasswordHashingOptionsTests` | pepper ausente ou vazio derruba o boot com mensagem explícita |
+| `Argon2PasswordHasherTests` | a mesma senha gera hashes **diferentes** (salt aleatório) e ambos verificam; senha errada não verifica; hash com parâmetros antigos continua verificando; hash gerado com um pepper **não** verifica com outro nem sem nenhum; e `Verify` aceita senha que **não passaria na política de hoje** — é por isso que ele recebe `string` e não `Password` |
 | `PasswordTests` | as seis regras da RN-11, cada uma com seu código; o conjunto de especiais conferido contra a regra que ele codifica (ASCII imprimível não alfanumérico); espaço aceito mas não contando como especial; `ToString` não vaza |
 | `UserTests` | `Create` exige `PasswordHash`; o agregado não expõe o hash |
 | `LoginCommandHandlerTests` | credencial certa emite token; e-mail inexistente, senha errada e usuário inativo devolvem **o mesmo** código (RN-03/RN-04) |
@@ -217,6 +224,7 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 - **ADR "identidade própria em vez de ASP.NET Core Identity"** — pendente desde a fatia anterior, e esta é onde a alternativa rejeitada fica mais visível: `PasswordHasher<T>`, `SignInManager` e `UserManager` são exatamente o que estamos reconstruindo.
 - **Papéis e autorização** — fatia própria, provavelmente com ADR.
 - **Conferir senha contra lista de vazadas** — o controle que o NIST recomenda no lugar das regras de composição (RN-12). A API do Have I Been Pwned faz isso por k-anonimato: manda-se os 5 primeiros caracteres do SHA-1 e recebem-se os sufixos que batem, sem o serviço nunca ver a senha.
+- **Rotação do pepper** — hoje impossível sem invalidar tudo. A string PHC **não registra** qual pepper foi usado (verificado), então trocar a chave quebra todos os hashes de uma vez. Dois caminhos conhecidos, nenhum implementado: (a) **re-hashear no próximo login bem-sucedido** — no momento em que a senha em texto puro está disponível, deriva-se de novo com o pepper novo e regrava; exige guardar qual pepper cada hash usou, ou aceitar uma janela em que os dois são tentados; (b) **versionar o pepper** e guardar a versão ao lado do hash, o que torna a coexistência explícita e a migração incremental. A opção (b) é a mais limpa e implica uma coluna a mais em `users`. Decidir antes de existir usuário real, porque depois a migração fica cara.
 - **Bloqueio por tentativas** no login.
 - **Verificação de e-mail** no cadastro.
 - **Troca e recuperação de senha.**

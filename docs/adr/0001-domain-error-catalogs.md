@@ -86,5 +86,5 @@ Os 13 códigos foram preservados verbatim — a mudança não altera contrato.
 
 ## Relacionadas
 
-- `docs/srs/2026-07-25-financing-price.md` — slice cujo crescimento disparou a reavaliação.
+- `docs/srs/0003-financing-price.md` — slice cujo crescimento disparou a reavaliação.
 - Tradução via `.resx` + `Accept-Language` no `DomainErrorFilter` (planejada) — consumidora direta do inventário de chaves criado aqui.

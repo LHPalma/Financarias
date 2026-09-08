@@ -3,7 +3,7 @@
 - **Data:** 2026-09-07
 - **Feature:** `Identity/Users` (credencial e login) + autenticação transversal (`Api/Security`, `Infrastructure/Security`)
 - **Status:** especificado — implementação não iniciada
-- **Depende de:** `docs/srs/2026-07-26-identity-users.md` (entregue, PR #28)
+- **Depende de:** `docs/srs/0004-identity-users.md` (entregue, PR #28)
 - **Fonte externa:** nenhuma
 
 ---
@@ -214,4 +214,4 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 - **Bloqueio por tentativas** no login.
 - **Verificação de e-mail** no cadastro.
 - **Troca e recuperação de senha.**
-- **`ValidateOnStart` nas demais `Options`** — o padrão nasce aqui; o simulador de financiamento já o queria (`docs/srs/2026-07-25-financing-price.md` §10).
+- **`ValidateOnStart` nas demais `Options`** — o padrão nasce aqui; o simulador de financiamento já o queria (`docs/srs/0003-financing-price.md` §10).

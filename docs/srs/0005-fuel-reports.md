@@ -4,7 +4,7 @@
 
 ### 1.1 Propósito
 
-Documenta os dois primeiros relatórios construídos sobre a base de dados importada pelo slice de ANP (`docs/srs/2026-07-19-fuel-anp.md`), cujo §10 já apontava "Relatórios" como o objetivo real do módulo, ainda não construído. Esta SRS cobre a entrega de dois dos cinco relatórios listados lá: **paridade etanol×gasolina** e **posto mais barato**.
+Documenta os dois primeiros relatórios construídos sobre a base de dados importada pelo slice de ANP (`docs/srs/0002-fuel-anp.md`), cujo §10 já apontava "Relatórios" como o objetivo real do módulo, ainda não construído. Esta SRS cobre a entrega de dois dos cinco relatórios listados lá: **paridade etanol×gasolina** e **posto mais barato**.
 
 ### 1.2 Escopo
 

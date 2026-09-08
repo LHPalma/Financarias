@@ -263,7 +263,7 @@ Entregue em `feat/identity-users` e mergeada em `main` em 2026-09-07 (PR #28, me
 
 ## 10. Fatia seguinte — autenticação de verdade
 
-Especificada em `docs/srs/2026-09-07-auth-jwt.md`. Em resumo: senha com Argon2id (`Isopoh.Cryptography.Argon2`), `login` devolvendo JWT de acesso, `JwtCurrentUser` no lugar do `HeaderCurrentUser`, `[Authorize]` nos resolvers e remoção da trava de boot da RN-06. Refresh token e revogação ficam para a fatia depois dessa.
+Especificada em `docs/srs/0006-auth-jwt.md`. Em resumo: senha com Argon2id (`Isopoh.Cryptography.Argon2`), `login` devolvendo JWT de acesso, `JwtCurrentUser` no lugar do `HeaderCurrentUser`, `[Authorize]` nos resolvers e remoção da trava de boot da RN-06. Refresh token e revogação ficam para a fatia depois dessa.
 
 **O que aquela fatia cobra desta:** a promessa da RNF-04 de que trocar o adapter é *um arquivo*. Os únicos consumidores de `ICurrentUser` entregues aqui — o interceptor de auditoria e o resolver `me` — recebem apenas `Guid?`, então a troca não deve tocar domínio, casos de uso nem handlers. Se tocar, o problema está aqui, não lá.
 

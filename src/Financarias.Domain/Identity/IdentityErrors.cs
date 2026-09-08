@@ -4,12 +4,16 @@ namespace Financarias.Domain.Identity;
 
 public static class IdentityErrors
 {
+    public const string PasswordHashInvalid = "identity.passwordhash.invalid";
     public const string UserEmailDuplicate = "identity.user.email.duplicate";
     public const string UserNameRequired = "identity.user.name.required";
     public const string UserNotFound = "identity.user.notfound";
 
     public static DomainValidationException DuplicateEmail(string email) =>
         new(UserEmailDuplicate, $"Email already in use: '{email}'.");
+
+    public static DomainValidationException InvalidPasswordHash() =>
+        new(PasswordHashInvalid, "Password hash is not in a recognizable format.");
 
     public static DomainValidationException NotFound(Guid id) =>
         new(UserNotFound, $"User not found: '{id}'.");

@@ -37,7 +37,8 @@ public class DomainErrorCatalogTests
             "holiday.name.required",
             "legalentity.cnpj.invalid",
             "stock.ticker.invalid",
-            "identity.user.name.required",
+            "identity.user.name.required",
+            "identity.passwordhash.invalid",
             "identity.user.email.duplicate",
             "identity.user.notfound",
         ];

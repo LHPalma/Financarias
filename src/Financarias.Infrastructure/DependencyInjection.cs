@@ -1,7 +1,9 @@
 using Financarias.Application.Common.Persistence;
+using Financarias.Application.Common.Security;
 using Financarias.Infrastructure.Persistence;
 using Financarias.Infrastructure.Persistence.Interceptors;
 using Financarias.Infrastructure.Persistence.Repositories;
+using Financarias.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 
         return services;
     }

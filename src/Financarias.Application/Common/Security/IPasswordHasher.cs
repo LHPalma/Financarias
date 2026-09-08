@@ -8,7 +8,7 @@ namespace Financarias.Application.Common.Security;
 /// </summary>
 public interface IPasswordHasher
 {
-    PasswordHash Hash(string password);
+    PasswordHash Hash(Password password);
 
     bool Verify(PasswordHash hash, string password);
 }

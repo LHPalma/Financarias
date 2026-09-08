@@ -12,14 +12,13 @@ public class Argon2PasswordHasher
     private const int Parallelism = 1;
     private const int HashLengthBytes = 32;
 
-    public PasswordHash Hash(string password)
+    public PasswordHash Hash(Password password)
     {
         return PasswordHash.Create(Argon2.Hash(
-            password,
+            password.Value,
             timeCost: TimeCost,
             memoryCost: MemoryCostKib,
             parallelism: Parallelism,
-            // HybridAddressing é o argon2id; a Isopoh nomeia os tipos pelo modo de acesso à memória.
             type: Argon2Type.HybridAddressing,
             hashLength: HashLengthBytes
         ));

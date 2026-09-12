@@ -62,8 +62,8 @@ public class UserQueriesTests : IAsyncLifetime
 
         _activeEmail = $"ativo-{_tag}@example.com";
 
-        var active = User.Create("Ativo", Email.Create($"Ativo-{_tag}@Example.com"));
-        var inactive = User.Create("Inativo", Email.Create($"inativo-{_tag}@example.com"));
+        var active = User.Create("Ativo", Email.Create($"Ativo-{_tag}@Example.com"), TestPasswordHashes.Any);
+        var inactive = User.Create("Inativo", Email.Create($"inativo-{_tag}@example.com"), TestPasswordHashes.Any);
         inactive.Deactivate();
 
         db.Users.AddRange(active, inactive);

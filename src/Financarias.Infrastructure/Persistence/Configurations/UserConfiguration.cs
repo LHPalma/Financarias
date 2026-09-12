@@ -21,6 +21,16 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(254)
             .HasConversion<EmailConverter>();
 
+        builder.ComplexProperty(u => u.PasswordHash, hash =>
+        {
+            hash.Property(h => h.Value)
+                .HasColumnName("password_hash")
+                .HasMaxLength(256);
+
+            hash.Property(h => h.PepperVersion)
+                .HasColumnName("password_pepper_version");
+        });
+
         builder.Property(u => u.Status)
             .IsRequired()
             .HasMaxLength(20)

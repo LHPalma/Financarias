@@ -8,6 +8,7 @@ namespace Financarias.Application.Identity.Users.Mappers;
 [Mapper]
 public partial class UserMapper
 {
+    [MapperIgnoreSource(nameof(User.PasswordHash))]
     public partial UserResult ToResult(User user);
 
     private static string ToEmail(Email email) => email.Value;

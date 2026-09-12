@@ -21,12 +21,13 @@ public class CreateUserCommandHandlerTests
 
         // Act
         var user = await new CreateUserCommandHandler(_repository)
-            .HandleAsync(new CreateUserCommand("Luiz Palma", email));
+            .HandleAsync(new CreateUserCommand("Luiz Palma", email, TestPasswordHashes.Any));
 
         // Assert
         Assert.Equal("Luiz Palma", user.Name);
         Assert.Equal(email, user.Email);
         Assert.Equal(UserStatus.Active, user.Status);
+        Assert.Equal(TestPasswordHashes.Any, user.PasswordHash);
 
         await _repository.Received(1).AddAsync(
             Arg.Is<User>(u => u.Email == email),
@@ -38,12 +39,12 @@ public class CreateUserCommandHandlerTests
     {
         // Arrange
         var email = Email.Create("ocupado@example.com");
-        RepositoryFinds(User.Create("Já existe", email));
+        RepositoryFinds(User.Create("Já existe", email, TestPasswordHashes.Any));
 
         // Act
         var exception = await Assert.ThrowsAsync<DomainValidationException>(() =>
             new CreateUserCommandHandler(_repository)
-                .HandleAsync(new CreateUserCommand("Luiz Palma", email)));
+                .HandleAsync(new CreateUserCommand("Luiz Palma", email, TestPasswordHashes.Any)));
 
         // Assert
         Assert.Equal("identity.user.email.duplicate", exception.Code);
@@ -54,12 +55,12 @@ public class CreateUserCommandHandlerTests
     {
         // Arrange
         var email = Email.Create("ocupado@example.com");
-        RepositoryFinds(User.Create("Já existe", email));
+        RepositoryFinds(User.Create("Já existe", email, TestPasswordHashes.Any));
 
         // Act
         await Assert.ThrowsAsync<DomainValidationException>(() =>
             new CreateUserCommandHandler(_repository)
-                .HandleAsync(new CreateUserCommand("Luiz Palma", email)));
+                .HandleAsync(new CreateUserCommand("Luiz Palma", email, TestPasswordHashes.Any)));
 
         // Assert
         await _repository.DidNotReceive().AddAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());

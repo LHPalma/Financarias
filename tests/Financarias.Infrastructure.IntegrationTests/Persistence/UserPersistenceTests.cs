@@ -25,7 +25,8 @@ public class UserPersistenceTests : IAsyncLifetime
     {
         // Arrange
         var email = Email.Create("Luiz@Example.com");
-        var user = User.Create("Luiz Palma", email);
+        var hash = PasswordHash.Create(TestPasswordHashes.Any.Value, pepperVersion: 3);
+        var user = User.Create("Luiz Palma", email, hash);
 
         await using (var write = CreateContext())
         {
@@ -43,6 +44,10 @@ public class UserPersistenceTests : IAsyncLifetime
         Assert.Equal(email, found.Email);
         Assert.Equal("luiz@example.com", found.Email.Value);
         Assert.Equal(UserStatus.Active, found.Status);
+
+        // versão 3, não 1: se o ComplexProperty perdesse a coluna, o valor padrão não passaria por acaso
+        Assert.Equal(hash.Value, found.PasswordHash.Value);
+        Assert.Equal(3, found.PasswordHash.PepperVersion);
     }
 
     [Fact(DisplayName = "Índice único barra e-mail duplicado depois da normalização")]
@@ -50,11 +55,11 @@ public class UserPersistenceTests : IAsyncLifetime
     {
         // Arrange
         await using var context = CreateContext();
-        context.Users.Add(User.Create("Primeiro", Email.Create("duplicado@example.com")));
+        context.Users.Add(User.Create("Primeiro", Email.Create("duplicado@example.com"), TestPasswordHashes.Any));
         await context.SaveChangesAsync();
 
         // Act: mesma pessoa, outra caixa e com espaços — o VO normaliza antes de chegar no índice
-        context.Users.Add(User.Create("Segundo", Email.Create("  DUPLICADO@Example.COM  ")));
+        context.Users.Add(User.Create("Segundo", Email.Create("  DUPLICADO@Example.COM  "), TestPasswordHashes.Any));
 
         // Assert
         await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
@@ -66,7 +71,7 @@ public class UserPersistenceTests : IAsyncLifetime
     public async Task EmailHost_IsComputedByThePostgres(string address, string expectedHost)
     {
         // Arrange
-        var user = User.Create("Luiz", Email.Create(address));
+        var user = User.Create("Luiz", Email.Create(address), TestPasswordHashes.Any);
 
         await using (var write = CreateContext())
         {

@@ -12,7 +12,7 @@ public class User :
     {
     }
 
-    private User(string name, Email email)
+    private User(string name, Email email, PasswordHash passwordHash)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -22,12 +22,15 @@ public class User :
         Id = Guid.CreateVersion7();
         Name = name.Trim();
         Email = email;
+        PasswordHash = passwordHash;
         Status = UserStatus.Active;
     }
 
     public string Name { get; private set; } = null!;
 
     public Email Email { get; private set; } = null!;
+
+    public PasswordHash PasswordHash { get; private set; } = null!;
 
     public UserStatus Status { get; private set; }
 
@@ -39,7 +42,8 @@ public class User :
 
     public Guid? UpdatedBy { get; private set; }
 
-    public static User Create(string name, Email email) => new(name, email);
+    public static User Create(string name, Email email, PasswordHash passwordHash) =>
+        new(name, email, passwordHash);
 
     public void Deactivate() => Status = UserStatus.Inactive;
 

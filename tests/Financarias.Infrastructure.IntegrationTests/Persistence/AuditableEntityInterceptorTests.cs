@@ -31,7 +31,7 @@ public class AuditableEntityInterceptorTests : IAsyncLifetime
         // Arrange
         var author = Guid.CreateVersion7();
         var time = new FakeTimeProvider(CreatedOn);
-        var user = User.Create("Inserido", Email.Create("insert@example.com"));
+        var user = User.Create("Inserido", Email.Create("insert@example.com"), TestPasswordHashes.Any);
 
         // Act
         await using (var write = CreateContext(author, time))
@@ -57,7 +57,7 @@ public class AuditableEntityInterceptorTests : IAsyncLifetime
         var creator = Guid.CreateVersion7();
         var editor = Guid.CreateVersion7();
         var time = new FakeTimeProvider(CreatedOn);
-        var user = User.Create("Alterado", Email.Create("update@example.com"));
+        var user = User.Create("Alterado", Email.Create("update@example.com"), TestPasswordHashes.Any);
 
         await using (var write = CreateContext(creator, time))
         {
@@ -90,7 +90,7 @@ public class AuditableEntityInterceptorTests : IAsyncLifetime
     {
         // Arrange: é o caso do import e de qualquer job, que escrevem sem requisição
         var time = new FakeTimeProvider(CreatedOn);
-        var user = User.Create("Sem autor", Email.Create("noauthor@example.com"));
+        var user = User.Create("Sem autor", Email.Create("noauthor@example.com"), TestPasswordHashes.Any);
 
         // Act
         await using (var write = CreateContext(null, time))

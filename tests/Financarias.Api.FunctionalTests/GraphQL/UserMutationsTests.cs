@@ -70,7 +70,7 @@ public class UserMutationsTests : IAsyncLifetime
 
         // Act
         var created = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Novo Usuário", email: "{{address}}" }) { id name email status } }""");
+            $$"""mutation { createUser(input: { name: "Novo Usuário", email: "{{address}}", password: "S3nha-Forte!" }) { id name email status } }""");
 
         // Assert
         var user = created.GetProperty("data").GetProperty("createUser");
@@ -92,10 +92,32 @@ public class UserMutationsTests : IAsyncLifetime
     {
         // Act
         var response = await ExecuteAsync(
-            """mutation { createUser(input: { name: "Fulano", email: "nao-e-email" }) { id } }""");
+            """mutation { createUser(input: { name: "Fulano", email: "nao-e-email", password: "S3nha-Forte!" }) { id } }""");
 
         // Assert
         Assert.Equal("contacts.email.invalid", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "createUser com senha fora da política devolve o código da regra")]
+    public async Task CreateUser_WeakPassword_ReturnsDomainErrorCode()
+    {
+        // Act
+        var response = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Fraca", email: "fraca-{{_tag}}@example.com", password: "SemDigito!" }) { id } }""");
+
+        // Assert
+        Assert.Equal("identity.password.missingdigit", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "O hash de senha não existe no schema: pedir o campo é rejeitado")]
+    public async Task Users_DoesNotExposeThePasswordHash()
+    {
+        // Act
+        var response = await ExecuteAsync("{ users { id passwordHash } }");
+
+        // Assert: o UserType usa BindFieldsExplicitly, então o campo novo do agregado não vaza
+        Assert.False(response.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object);
+        Assert.Contains("passwordHash", response.GetProperty("errors")[0].GetProperty("message").GetString());
     }
 
     [Fact(DisplayName = "createUser com e-mail já em uso devolve identity.user.email.duplicate")]
@@ -104,11 +126,11 @@ public class UserMutationsTests : IAsyncLifetime
         // Arrange
         var address = $"duplicado-{_tag}@example.com";
         await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Primeiro", email: "{{address}}" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Primeiro", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
 
         // Act
         var response = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Segundo", email: "{{address}}" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Segundo", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
 
         // Assert
         Assert.Equal("identity.user.email.duplicate", FirstErrorCode(response));
@@ -120,7 +142,7 @@ public class UserMutationsTests : IAsyncLifetime
     {
         // Arrange
         var created = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Some", email: "some-{{_tag}}@example.com" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Some", email: "some-{{_tag}}@example.com", password: "S3nha-Forte!" }) { id } }""");
         var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
 
         // Act
@@ -161,7 +183,7 @@ public class UserMutationsTests : IAsyncLifetime
     {
         // Arrange
         var created = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Volta", email: "volta-{{_tag}}@example.com" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Volta", email: "volta-{{_tag}}@example.com", password: "S3nha-Forte!" }) { id } }""");
         var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
 
         await ExecuteAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");

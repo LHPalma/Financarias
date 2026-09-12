@@ -35,7 +35,7 @@ public class DeactivateUserHandlerTests : IAsyncLifetime
         await using var context = CreateContext();
         var repository = new Repository<User>(context);
         var user = await new CreateUserCommandHandler(repository)
-            .HandleAsync(new CreateUserCommand("Luiz Palma", Email.Create("norepeat@example.com")));
+            .HandleAsync(new CreateUserCommand("Luiz Palma", Email.Create("norepeat@example.com"), TestPasswordHashes.Any));
 
         var handler = new DeactivateUserCommandHandler(repository);
 

@@ -11,5 +11,12 @@ internal static class TestBootstrap
 {
     [ModuleInitializer]
     internal static void Initialize()
-        => Environment.SetEnvironmentVariable("Integrations__Brapi__Token", "test-token");
+    {
+        Environment.SetEnvironmentVariable("Integrations__Brapi__Token", "test-token");
+
+        // Os funcionais sobem em "Testing", que não carrega o appsettings.Development.json, e o
+        // ValidateOnStart derruba o boot sem pepper. Valor de teste, sem nenhum valor de segredo.
+        Environment.SetEnvironmentVariable("PasswordHashing__CurrentPepperVersion", "1");
+        Environment.SetEnvironmentVariable("PasswordHashing__Peppers__1", "pepper-de-teste-com-pelo-menos-32-caracteres");
+    }
 }

@@ -10,18 +10,29 @@ public sealed record PasswordHash
 {
     private const int MinimumDollarSigns = 5;
 
-    private PasswordHash(string value) => Value = value;
+    private PasswordHash(string value, int pepperVersion)
+    {
+        Value = value;
+        PepperVersion = pepperVersion;
+    }
 
     public string Value { get; }
 
-    /// <summary>Cria a partir de uma string PHC; lança se não parecer uma.</summary>
-    public static PasswordHash Create(string? input) =>
-        !TryCreate(input, out var hash) ? throw IdentityErrors.InvalidPasswordHash() : hash;
+    public int PepperVersion { get; }
 
-    /// <summary>Tenta criar; retorna false em vez de lançar quando a entrada não é PHC.</summary>
-    public static bool TryCreate(string? input, [NotNullWhen(true)] out PasswordHash? hash)
+    /// <summary>Cria a partir de uma string PHC e da versão do pepper que a derivou; lança se inválido.</summary>
+    public static PasswordHash Create(string? input, int pepperVersion) =>
+        !TryCreate(input, pepperVersion, out var hash) ? throw IdentityErrors.InvalidPasswordHash() : hash;
+
+    /// <summary>Tenta criar; retorna false em vez de lançar quando a entrada não é PHC ou a versão é inválida.</summary>
+    public static bool TryCreate(string? input, int pepperVersion, [NotNullWhen(true)] out PasswordHash? hash)
     {
         hash = null;
+
+        if (pepperVersion < 1)
+        {
+            return false;
+        }
 
         if (string.IsNullOrWhiteSpace(input) || !input.StartsWith('$') || input.Any(char.IsWhiteSpace))
         {
@@ -33,7 +44,7 @@ public sealed record PasswordHash
             return false;
         }
 
-        hash = new PasswordHash(input);
+        hash = new PasswordHash(input, pepperVersion);
         return true;
     }
 

@@ -24,6 +24,13 @@ updates:
           - "coverlet.*"
           - "Testcontainers.*"
           - "Microsoft.NET.Test.Sdk"
+      # HotChocolate.Data e HotChocolate.AspNetCore precisam subir juntos: um par
+      # descasado compila e mergeia limpo, mas lança TypeLoadException em runtime —
+      # só os funcionais pegam. Em PRs separados, o primeiro mergeado deixa a main
+      # num estado que nenhum CI testou.
+      hotchocolate:
+        patterns:
+          - "HotChocolate.*"
       # O trem do .NET sobe junto todo mês; sem agrupar, vira meia dúzia de PRs
       # que só fazem sentido mergeados na mesma versão.
       dotnet:

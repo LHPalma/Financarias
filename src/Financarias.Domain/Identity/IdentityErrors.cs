@@ -4,6 +4,7 @@ namespace Financarias.Domain.Identity;
 
 public static class IdentityErrors
 {
+    public const string CredentialsInvalid = "identity.credentials.invalid";
     public const string PasswordHashInvalid = "identity.passwordhash.invalid";
     public const string PasswordMissingDigit = "identity.password.missingdigit";
     public const string PasswordMissingLowercase = "identity.password.missinglowercase";
@@ -17,6 +18,9 @@ public static class IdentityErrors
 
     public static DomainValidationException DuplicateEmail(string email) =>
         new(UserEmailDuplicate, $"Email already in use: '{email}'.");
+
+    public static DomainValidationException InvalidCredentials() =>
+        new(CredentialsInvalid, "Invalid email or password.");
 
     public static DomainValidationException InvalidPasswordHash() =>
         new(PasswordHashInvalid, "Password hash is not in a recognizable format.");

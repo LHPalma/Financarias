@@ -38,6 +38,7 @@ public class DomainErrorCatalogTests
             "legalentity.cnpj.invalid",
             "stock.ticker.invalid",
             "identity.user.name.required",
+            "identity.credentials.invalid",
             "identity.passwordhash.invalid",
             "identity.password.missingdigit",
             "identity.password.missinglowercase",

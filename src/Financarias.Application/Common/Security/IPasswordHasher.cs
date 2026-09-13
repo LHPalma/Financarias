@@ -10,5 +10,10 @@ public interface IPasswordHasher
 {
     PasswordHash Hash(Password password);
 
-    bool Verify(PasswordHash hash, string password);
+    /// <summary>
+    ///     Confere a senha contra o hash. Com hash nulo — usuário inexistente —, verifica contra um hash
+    ///     descartável e devolve false, gastando o mesmo tempo: a ausência do usuário não fica visível
+    ///     pelo tempo de resposta.
+    /// </summary>
+    bool Verify(PasswordHash? hash, string password);
 }

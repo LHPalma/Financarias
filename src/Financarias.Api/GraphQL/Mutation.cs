@@ -23,6 +23,13 @@ public class Mutation
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(input, cancellationToken);
 
+    [GraphQLName("login")]
+    public Task<AccessTokenResult> LoginAsync(
+        LoginRequest input,
+        ILoginUseCase useCase,
+        CancellationToken cancellationToken) =>
+        useCase.ExecuteAsync(input, cancellationToken);
+
     [GraphQLName("activateUser")]
     public Task<UserResult> ActivateUserAsync(
         Guid id,

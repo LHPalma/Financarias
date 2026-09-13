@@ -14,6 +14,8 @@ public class Argon2PasswordHasher(
     private const int Parallelism = 1;
     private const int HashLengthBytes = 32;
 
+    private PasswordHash? _decoy;
+
     public PasswordHash Hash(Password password)
     {
         var version = options.Value.CurrentPepperVersion;
@@ -33,6 +35,13 @@ public class Argon2PasswordHasher(
 
     public bool Verify(PasswordHash hash, string password)
     {
+        if (hash is null)
+        {
+            _decoy ??= Hash(Password.Create("Descartavel-games-e-jogos-7!"));
+            _ = Verify(_decoy, password);
+            return false;
+        }
+
         if (!options.Value.Peppers.TryGetValue(hash.PepperVersion, out var pepper))
         {
             throw new InvalidOperationException(

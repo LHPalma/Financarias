@@ -1,4 +1,7 @@
 using Financarias.Application.Common.Security;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Financarias.Api.Security;
 
@@ -19,6 +22,34 @@ public static class SecurityDependencyInjection
             .ValidateOnStart();
 
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddAccessTokenAuthentication(this IServiceCollection services)
+    {
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer();
+
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) =>
+            {
+                var jwt = jwtOptions.Value;
+
+                bearer.MapInboundClaims = false;
+                bearer.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidIssuer = jwt.Issuer,
+                    ValidAudience = jwt.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(jwt.SigningKey)),
+                    ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                    ClockSkew = TimeSpan.Zero,
+                };
+            });
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, JwtCurrentUser>();
 
         return services;
     }

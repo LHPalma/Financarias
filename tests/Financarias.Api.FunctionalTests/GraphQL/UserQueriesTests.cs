@@ -1,5 +1,9 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
+using Financarias.Api.Security;
+using Financarias.Application.Common.Security;
 using Financarias.Domain.Contacts;
 using Financarias.Domain.Identity;
 using Financarias.Infrastructure.Persistence;
@@ -11,6 +15,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Testcontainers.PostgreSql;
 
 namespace Financarias.Api.FunctionalTests.GraphQL;
@@ -125,19 +132,22 @@ public class UserQueriesTests : IAsyncLifetime
         Assert.Contains(_inactiveId, allIds);
     }
 
-    [Fact(DisplayName = "Query me devolve o usuário do header X-User-Id")]
-    public async Task Me_ReturnsUser_FromHeader()
+    [Fact(DisplayName = "Query me devolve o usuário do token Bearer")]
+    public async Task Me_ReturnsUser_FromBearerToken()
     {
+        // Arrange
+        var token = IssueToken(_activeId);
+
         // Act
-        var me = await QueryAsync("{ me { id name email } }", "me", _activeId);
+        var me = await QueryAsync("{ me { id name email } }", "me", bearerToken: token);
 
         // Assert
         Assert.Equal(_activeId, me.GetProperty("id").GetGuid());
         Assert.Equal(_activeEmail, me.GetProperty("email").GetString());
     }
 
-    [Fact(DisplayName = "Query me devolve nulo quando não há usuário corrente")]
-    public async Task Me_ReturnsNull_WithoutHeader()
+    [Fact(DisplayName = "Query me devolve nulo quando não há token")]
+    public async Task Me_ReturnsNull_WithoutToken()
     {
         // Act
         var me = await QueryAsync("{ me { id } }", "me");
@@ -146,13 +156,70 @@ public class UserQueriesTests : IAsyncLifetime
         Assert.Equal(JsonValueKind.Null, me.ValueKind);
     }
 
-    private async Task<JsonElement> QueryAsync(string query, string field, Guid? currentUser = null)
+    [Fact(DisplayName = "O header X-User-Id deixou de identificar alguém")]
+    public async Task Me_IgnoresTheLegacyUserIdHeader()
+    {
+        // Act
+        var me = await QueryAsync("{ me { id } }", "me", legacyUserIdHeader: _activeId);
+
+        // Assert: era o adaptador provisório, que acreditava em qualquer id mandado no header
+        Assert.Equal(JsonValueKind.Null, me.ValueKind);
+    }
+
+    [Theory(DisplayName = "Token forjado, expirado ou de outro emissor não identifica ninguém")]
+    [InlineData("assinatura")]
+    [InlineData("expirado")]
+    [InlineData("emissor")]
+    [InlineData("audiencia")]
+    public async Task Me_ReturnsNull_ForAnInvalidToken(string defect)
+    {
+        // Arrange
+        var jwt = _factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value;
+        var now = DateTime.UtcNow;
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = defect == "emissor" ? "outro-emissor" : jwt.Issuer,
+            Audience = defect == "audiencia" ? "outra-api" : jwt.Audience,
+            NotBefore = defect == "expirado" ? now.AddHours(-2) : now,
+            IssuedAt = defect == "expirado" ? now.AddHours(-2) : now,
+            Expires = defect == "expirado" ? now.AddHours(-1) : now.AddHours(1),
+            Claims = new Dictionary<string, object> { [JwtRegisteredClaimNames.Sub] = _activeId.ToString() },
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(defect == "assinatura"
+                    ? RandomNumberGenerator.GetBytes(32)
+                    : Convert.FromBase64String(jwt.SigningKey)),
+                SecurityAlgorithms.HmacSha256)
+        };
+
+        var token = new JsonWebTokenHandler().CreateToken(descriptor);
+
+        // Act
+        var me = await QueryAsync("{ me { id } }", "me", bearerToken: token);
+
+        // Assert: sem [Authorize] o middleware não recusa a requisição — só não reconhece o usuário
+        Assert.Equal(JsonValueKind.Null, me.ValueKind);
+    }
+
+    private string IssueToken(Guid userId) =>
+        _factory.Services.GetRequiredService<IAccessTokenIssuer>().Issue(userId).Token;
+
+    private async Task<JsonElement> QueryAsync(
+        string query,
+        string field,
+        string? bearerToken = null,
+        Guid? legacyUserIdHeader = null)
     {
         var client = _factory.CreateClient();
 
-        if (currentUser is not null)
+        if (bearerToken is not null)
         {
-            client.DefaultRequestHeaders.Add("X-User-Id", currentUser.Value.ToString());
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+        }
+
+        if (legacyUserIdHeader is not null)
+        {
+            client.DefaultRequestHeaders.Add("X-User-Id", legacyUserIdHeader.Value.ToString());
         }
 
         var response = await client.PostAsJsonAsync("/graphql", new { query });

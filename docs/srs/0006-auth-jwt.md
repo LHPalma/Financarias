@@ -2,7 +2,7 @@
 
 - **Data:** 2026-09-07
 - **Feature:** `Identity/Users` (credencial e login) + autenticação transversal (`Api/Security`, `Infrastructure/Security`)
-- **Status:** implementado na branch `feat/auth-jwt` (passos 1 a 7 da §8); refresh token e revogação ficam para a fatia seguinte (§10)
+- **Status:** implementado na branch `feat/auth-jwt` (passos 1 a 7 da §8); refresh token e revogação ficam para a fatia seguinte (§10). Adendo posterior: troca de senha (RF-06, passo 8)
 - **Depende de:** `docs/srs/0004-identity-users.md` (entregue, PR #28)
 - **Fonte externa:** nenhuma
 
@@ -18,12 +18,13 @@ Trocar identidade *declarada* por identidade *provada*. A fatia anterior entrego
 - `login(email, password)` devolvendo um **JWT de acesso**.
 - `JwtCurrentUser` substituindo o `HeaderCurrentUser`.
 - `[Authorize]` nos resolvers, em modo binário (autenticado ou não).
+- Troca de senha do usuário autenticado (RF-06) — adendo posterior à entrega original.
 - Remoção da trava de boot da RN-06 da fatia anterior.
 - `Options` de JWT validadas no boot.
 
 **Fora de escopo, planejado para a fatia seguinte (§10):** refresh token, rotação, revogação por `jti`, logout.
 
-**Fora de escopo indefinidamente nesta rodada:** troca de senha, recuperação por e-mail, verificação de e-mail, bloqueio por tentativas, 2FA, login externo.
+**Fora de escopo indefinidamente nesta rodada:** recuperação de senha por e-mail, verificação de e-mail, bloqueio por tentativas, 2FA, login externo.
 
 ### 1.3 Definições
 | Termo | Significado |
@@ -96,6 +97,9 @@ Toda query e mutation de identidade exige autenticação, **exceto** `login` e `
 ### RF-05 — A aplicação sobe em Production
 Removida a trava da RN-06 anterior. Em Production o `JwtCurrentUser` é registrado como em qualquer outro ambiente.
 
+### RF-06 — Troca de senha
+`changePassword(input: { currentPassword, newPassword })` troca a senha do **usuário autenticado** e devolve o `UserResult`. Exige a senha atual (RN-22) e a nova precisa cumprir a política da RN-11. Não recebe `id`: age sempre sobre o dono do token (RN-21).
+
 ---
 
 ## 4. Regras de negócio
@@ -123,6 +127,10 @@ Removida a trava da RN-06 anterior. Em Production o `JwtCurrentUser` é registra
 | **RN-18** | **Ordem das checagens do login.** A senha é sempre verificada antes de qualquer decisão, e o status só é olhado depois dela: checar `Inactive` antes permitiria descobrir que uma conta está desativada sem saber a senha. E-mail malformado vira o mesmo `identity.credentials.invalid` (via `Email.TryCreate`), sem passar pelo Argon2 — responder rápido aqui não vaza nada, porque formato inválido não diz se existe conta. A senha chega como `string` e **não** passa por `Password.Create`: login confere credencial, não valida regra de cadastro (mesmo motivo do `Verify` receber `string`). A mensagem não ecoa o e-mail, ao contrário de `DuplicateEmail`. |
 | **RN-19** | **Validação do token.** Issuer, audience e chave vêm do mesmo `JwtOptions` do emissor, lido via `Configure<IOptions<JwtOptions>>` — não há segunda leitura da configuração que pudesse divergir de quem assina. `MapInboundClaims = false`: por padrão o ASP.NET renomeia `sub` para a URI `.../nameidentifier`, e o `JwtCurrentUser` veria todo usuário como anônimo, sem erro nenhum. `ValidAlgorithms = [HS256]`: sem a trava, o validador aceita o algoritmo que o próprio token declarar. `ClockSkew = TimeSpan.Zero`: o padrão de 5 minutos faria o token de uma hora valer uma hora e cinco, e a tolerância só se justifica com relógios diferentes entre quem assina e quem valida. **Token inválido não recusa a requisição**: o middleware só não reconhece o usuário e deixa o principal anônimo. Quem recusa é o `[Authorize]` do resolver (RN-20). |
 | **RN-20** | **Quem recusa é o `[Authorize]` do Hot Chocolate, não um filtro HTTP.** O `JwtBearer` valida o token e monta o principal; o atributo vira uma diretiva no schema, e um middleware de campo consulta o principal antes de executar o resolver. Sem `.AddAuthorization()` na cadeia do `AddGraphQLServer()` o atributo compila e **não bloqueia nada**, por isso os funcionais são a prova. O `[Authorize]` vem de `HotChocolate.Authorization` (transitivo), e o `.AddAuthorization()` de `HotChocolate.AspNetCore.Authorization`, que precisa andar na mesma versão do `HotChocolate.Data` e do `HotChocolate.AspNetCore`. A recusa devolve `extensions.code = AUTH_NOT_AUTHENTICATED` — código do próprio Hot Chocolate, fora dos catálogos de domínio, porque não nasce de uma invariante. Consequência para o `me`: sem token ou com token inválido, deixa de devolver nulo e passa a devolver erro. **Escopo:** só a identidade (RF-04) — `users`, `user`, `me`, `activateUser` e `deactivateUser`. Os dados de mercado seguem públicos (o app móvel lê `cheapestFuelPrices` sem login), e `importHolidays`/`importFuelPrices`, escritas pesadas, também: com autorização binária, protegê-las só as abriria a qualquer usuário logado, então ficam para a fatia de papéis. |
+| **RN-21** | **Só o dono troca a própria senha.** A mutation não recebe `id`: o caso de uso lê o usuário do `ICurrentUser`, então não há como apontar para a conta de outro, e a operação não depende de papéis (RN-09). Sem usuário corrente, o caso de uso lança `InvalidOperationException` e **não** um erro de domínio: só acontece se um resolver ficar sem `[Authorize]`, o que é erro de programação e precisa ser barulhento, não uma resposta de negócio. |
+| **RN-22** | **A senha atual precisa conferir, com código próprio.** A conferência usa o `Verify` contra o hash gravado, com a versão de pepper que o hash declara — quem ainda tem hash de um pepper antigo troca a senha normalmente. Falha lança `identity.password.currentincorrect`, e **não** `identity.credentials.invalid`: quem chama já está autenticado, então não há oráculo de cadastro a proteger, e um código próprio diz ao cliente o que ele errou. A senha atual chega como `string` e não passa pela política de composição, pelo mesmo motivo do `login` (RN-18): conferir credencial não é validar regra de cadastro. |
+| **RN-23** | **Ordem das checagens.** A nova senha é validada pela política **antes** de qualquer acesso ao banco e ao Argon2; depois vêm carregar o usuário, `Verify` da atual, `Hash` da nova e a escrita. Consequências: senha nova fora da política falha barato; senha atual errada gasta **um** Argon2 e não dois (o `Hash` só roda depois do `Verify`); e quem erra as duas coisas recebe o erro da política, não o da senha atual. |
+| **RN-24** | **Limites conscientes da troca.** (a) **Não invalida tokens já emitidos:** quem trocou a senha por suspeita de vazamento continua com o token roubado válido até expirar, o que dá sentido pleno à revogação da §10. (b) **O hash novo sai na versão corrente do pepper**, então a troca migra o usuário para o pepper corrente como efeito colateral. (c) **Nova igual à atual não é rejeitada:** custaria um Argon2 a mais e a política atual não exige. (d) **Usuário inativo com token ainda válido consegue trocar a senha:** é a mesma lacuna da RN-04 diante de token vivo, e não é resolvida aqui. |
 
 ---
 
@@ -142,6 +150,7 @@ Removida a trava da RN-06 anterior. Em Production o `JwtCurrentUser` é registra
 type Mutation {
   createUser(input: CreateUserRequestInput!): UserResult!
   login(input: LoginRequestInput!): AccessTokenResult!
+  changePassword(input: ChangePasswordRequestInput!): UserResult!  # exige autenticação
 }
 
 input CreateUserRequestInput {
@@ -153,6 +162,11 @@ input CreateUserRequestInput {
 input LoginRequestInput {
   email: String!
   password: String!
+}
+
+input ChangePasswordRequestInput {
+  currentPassword: String!
+  newPassword: String!
 }
 
 type AccessTokenResult {
@@ -174,7 +188,8 @@ Nenhum campo de `User` ou `UserResult` expõe o hash. O `UserType` usa `BindFiel
 **Continua aberto, e é consciente:**
 - **Sem revogação.** Um token vazado vale até expirar; não há logout de servidor. É o que a fatia seguinte resolve, e é o principal motivo de o token ser de uma hora e não de um dia.
 - **Autorização binária.** Qualquer autenticado lista todos os usuários (RN-09).
-- **Sem bloqueio por tentativas.** Nada impede força bruta no `login` além do custo do Argon2id, que é real mas não é limite de taxa.
+- **Sem bloqueio por tentativas.** Nada impede força bruta no `login` além do custo do Argon2id, que é real mas não é limite de taxa. O `changePassword` herda o problema: quem tem um token roubado pode tentar adivinhar a senha atual por ele, com o mesmo atraso de ~150 ms por tentativa e nenhum teto.
+- **Trocar a senha não derruba o token já emitido** (RN-24). Serve a quem quer trocar por higiene, não a quem suspeita de vazamento, até a revogação da §10 existir.
 - **Sem verificação de e-mail.** Alguém pode se cadastrar com e-mail de terceiro.
 - **O pepper protege contra um tipo de brecha, não contra todas.** Ele perde o valor se o atacante levar **também** o servidor de aplicação, porque é lá que a chave vive. Defende exfiltração do banco isolada — que é a forma mais comum, mas não a única.
 - **Perder o pepper torna toda senha inverificável, sem recuperação.** Nem reset por e-mail resolve o passado: os hashes antigos viram lixo permanente. O backup dessa chave passa a importar tanto quanto o backup do banco, e isso é risco operacional que o sistema não tinha antes.
@@ -197,6 +212,7 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 | 5 | `login` — `LoginCommand`/`LoginCommandHandler`, `ILoginUseCase`/`LoginUseCase`, `LoginRequest`, `AccessTokenResult`, `identity.credentials.invalid`, `IPasswordHasher.Verify(PasswordHash?, string)` com hash descartável (RN-17). **Entregue sem testes automatizados**, por decisão do autor — verificado manualmente contra o Postgres local; os testes planejados na §9 ficam pendentes | 2+3, 4 |
 | 6 | `JwtCurrentUser` substitui `HeaderCurrentUser` (lê `sub` só de principal autenticado); `AddAccessTokenAuthentication` com `JwtBearer` configurado a partir do mesmo `JwtOptions` do emissor; `UseAuthentication` antes de `UseAuthorization`; trava de boot da RN-06 removida. **RNF-01 cumprida:** em `src`, só `Api/Security` e `Program.cs` mudaram — domínio, Application e Infrastructure intocados. **Verificado:** Production sem pepper e chave reais não sobe (`ValidateOnStart`), e os valores expostos de desenvolvimento não chegam lá | 4 |
 | 7 | `[Authorize]` em `users`, `user`, `me`, `activateUser` e `deactivateUser` + `.AddAuthorization()` + pacote `HotChocolate.AspNetCore.Authorization` (RN-20). Os funcionais de `me`, `users` e `user` passaram a mandar Bearer, e os que esperavam `me` nulo esperam `AUTH_NOT_AUTHENTICATED`. **Pendência do passo 5 quitada aqui:** testes do handler, do caso de uso, do hash nulo e funcionais do `login` | 5, 6 |
+| 8 | Troca de senha (RF-06), em quatro commits: `User.ChangePassword` (domínio); erro `identity.password.currentincorrect` no catálogo `IdentityErrors` e no inventário do `DomainErrorCatalogTests`; `ChangePasswordCommand`/`ChangePasswordCommandHandler`, `IChangePasswordUseCase`/`ChangePasswordUseCase`, `ChangePasswordRequest` e o registro na DI; e a mutation `changePassword` com `[Authorize]`. **Decisão de desenho:** o comando carrega `Password NewPassword` já validado, e a validação fica no caso de uso, como em `createUser` — um `string` no comando obrigaria o handler a chamar `Password.Create` e a validar depois de carregar o usuário | 5, 7 |
 
 ---
 
@@ -218,6 +234,10 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 | `JwtOptionsTests` | pelo `AddAccessTokens` real e o `IStartupValidator`: configuração válida passa; issuer ou audience ausente, chave vazia, não base64 ou com 32 caracteres base64 que decodificam para só 24 bytes, e validade zero ou negativa derrubam o boot; sem validade configurada, o padrão é uma hora |
 | `UserQueriesTests` (`me`) | token válido identifica o usuário; sem token, `me`, `users` e `user` devolvem `AUTH_NOT_AUTHENTICATED` (e `user` não vaza o e-mail); o header `X-User-Id` é ignorado; token com assinatura errada, expirado, de outro emissor e de outra audiência também são recusados como não autenticados. O `JwtCurrentUser` não tem teste unitário próprio: o comportamento só é real com o middleware preenchendo o principal, e o funcional cobre isso |
 | Funcional (GraphQL) | `activateUser` e `deactivateUser` sem token são recusados com `AUTH_NOT_AUTHENTICATED` e o estado do usuário não muda; com token, as duas funcionam. `createUser` e `login` funcionam sem token (RN-08) |
+| `UserTests` — `ChangePassword` | troca o hash e não mexe em id, nome, e-mail nem status |
+| `ChangePasswordCommandHandlerTests` | troca o hash e persiste; hasheia a nova senha como veio; confere a atual **antes** de hashear a nova (`Received.InOrder`); senha atual errada lança `identity.password.currentincorrect` sem hashear nem salvar; usuário inexistente lança `identity.user.notfound` sem chegar ao hasher |
+| `ChangePasswordUseCaseTests` | monta o comando com o id do `ICurrentUser`, a senha atual crua e a nova já validada; senha nova fora da política lança o código da regra sem chamar o handler; sem usuário corrente lança `InvalidOperationException`; a falha do handler propaga; mapeia para `UserResult` |
+| Funcional `changePassword` (`UserMutationsTests`) | a nova senha entra no `login` e a antiga passa a devolver `identity.credentials.invalid`; a troca só afeta o dono do token (a senha de outro usuário continua valendo, e o teste exige que a troca do dono aconteceu, senão passaria sem a mutation); senha atual errada devolve `identity.password.currentincorrect` e a antiga segue valendo; senha nova fraca devolve o código da regra; sem token devolve `AUTH_NOT_AUTHENTICATED` e nada muda |
 | Auditoria (Testcontainers) | escrita feita com token carimba `CreatedBy` com o id do token — a prova de que a RNF-01 valeu |
 
 ---
@@ -239,5 +259,5 @@ Nenhum desses impede a aplicação de subir, e por isso a trava sai. Mas os quat
 - **Re-hash no login após rotação** — com o pepper versionado (RN-15), rotacionar já é **possível**: adiciona-se a nova versão ao mapa, aponta-se a corrente para ela, e os hashes antigos continuam verificando. O que falta é migrar os antigos: no login bem-sucedido, quando `hash.PepperVersion` difere da corrente, derivar de novo e regravar, já que é o único momento em que a senha em texto puro está disponível. Só depois de ninguém mais usar uma versão ela pode sair do mapa — antes disso, a RN-15 faz o `Verify` lançar. Pertence ao passo 5 (`login`) ou a uma fatia própria.
 - **Bloqueio por tentativas** no login.
 - **Verificação de e-mail** no cadastro.
-- **Troca e recuperação de senha.**
+- **Recuperação de senha ("esqueci")** — exige envio de e-mail, e não há infraestrutura para isso. A troca com senha atual já existe (RF-06).
 - **`ValidateOnStart` nas demais `Options`** — o padrão nasce aqui; o simulador de financiamento já o queria (`docs/srs/0003-financing-price.md` §10).

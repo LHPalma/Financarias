@@ -38,7 +38,7 @@ public class CreateUserHandlerTests : IAsyncLifetime
 
         // Act
         var user = await handler.HandleAsync(
-            new CreateUserCommand("Luiz Palma", Email.Create("carimbado@example.com")));
+            new CreateUserCommand("Luiz Palma", Email.Create("carimbado@example.com"), TestPasswordHashes.Any));
 
         // Assert: sem o carimbo chegar na instância, o UserResult sairia com CreatedAt no default
         Assert.Equal(CreatedOn, user.CreatedAt);
@@ -53,11 +53,11 @@ public class CreateUserHandlerTests : IAsyncLifetime
         // Arrange
         await using var context = CreateContext();
         var handler = new CreateUserCommandHandler(new Repository<User>(context));
-        await handler.HandleAsync(new CreateUserCommand("Primeiro", Email.Create("ocupado@example.com")));
+        await handler.HandleAsync(new CreateUserCommand("Primeiro", Email.Create("ocupado@example.com"), TestPasswordHashes.Any));
 
         // Act
         var exception = await Assert.ThrowsAsync<DomainValidationException>(() =>
-            handler.HandleAsync(new CreateUserCommand("Segundo", Email.Create("  OCUPADO@Example.COM  "))));
+            handler.HandleAsync(new CreateUserCommand("Segundo", Email.Create("  OCUPADO@Example.COM  "), TestPasswordHashes.Any)));
 
         // Assert
         Assert.Equal("identity.user.email.duplicate", exception.Code);

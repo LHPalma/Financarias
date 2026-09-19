@@ -1,7 +1,9 @@
 using Financarias.Application.Common.Persistence;
+using Financarias.Application.Common.Security;
 using Financarias.Infrastructure.Persistence;
 using Financarias.Infrastructure.Persistence.Interceptors;
 using Financarias.Infrastructure.Persistence.Repositories;
+using Financarias.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +30,18 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        services.AddOptions<PasswordHashingOptions>()
+            .Bind(configuration.GetSection(PasswordHashingOptions.SectionName))
+            .Validate(options => options.Peppers.Count > 0,
+                "PasswordHashing:Peppers não configurado — nenhum pepper disponível.")
+            .Validate(options => options.Peppers.ContainsKey(options.CurrentPepperVersion),
+                "PasswordHashing:CurrentPepperVersion não existe em Peppers.")
+            .Validate(options => options.Peppers.Values.All(pepper => pepper is { Length: >= 32 }),
+                "PasswordHashing: todo pepper precisa de ao menos 32 caracteres.")
+            .ValidateOnStart();
+
+        services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 
         return services;
     }

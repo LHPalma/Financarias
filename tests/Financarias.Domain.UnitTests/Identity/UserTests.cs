@@ -13,12 +13,13 @@ public class UserTests
         var email = Email.Create("luiz@example.com");
 
         // Act
-        var user = User.Create("  Luiz Palma  ", email);
+        var user = User.Create("  Luiz Palma  ", email, TestPasswordHashes.Any);
 
         // Assert
         Assert.Equal("Luiz Palma", user.Name);
         Assert.Equal(email, user.Email);
         Assert.Equal(UserStatus.Active, user.Status);
+        Assert.Equal(TestPasswordHashes.Any, user.PasswordHash);
         Assert.NotEqual(Guid.Empty, user.Id);
     }
 
@@ -42,7 +43,7 @@ public class UserTests
         var email = Email.Create("luiz@example.com");
 
         // Act & Assert
-        var exception = Assert.Throws<DomainValidationException>(() => User.Create(name!, email));
+        var exception = Assert.Throws<DomainValidationException>(() => User.Create(name!, email, TestPasswordHashes.Any));
 
         Assert.Equal("identity.user.name.required", exception.Code);
     }
@@ -114,5 +115,5 @@ public class UserTests
         Assert.Null(user.UpdatedBy);
     }
 
-    private static User CreateUser() => User.Create("Luiz Palma", Email.Create("luiz@example.com"));
+    private static User CreateUser() => User.Create("Luiz Palma", Email.Create("luiz@example.com"), TestPasswordHashes.Any);
 }

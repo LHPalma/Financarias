@@ -22,7 +22,7 @@ public class CreateUserCommandHandler(
             throw IdentityErrors.DuplicateEmail(command.Email.Value);
         }
 
-        var user = User.Create(command.Name, command.Email);
+        var user = User.Create(command.Name, command.Email, command.PasswordHash);
 
         await repository.AddAsync(user, cancellationToken);
 

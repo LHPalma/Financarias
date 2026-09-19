@@ -15,7 +15,7 @@ public class ActivateUserCommandHandlerTests
     public async Task HandleAsync_ActivatesUser()
     {
         // Arrange
-        var user = User.Create("Luiz Palma", Email.Create("luiz@example.com"));
+        var user = User.Create("Luiz Palma", Email.Create("luiz@example.com"), TestPasswordHashes.Any);
         user.Deactivate();
         RepositoryFinds(user);
 
@@ -32,7 +32,7 @@ public class ActivateUserCommandHandlerTests
     public async Task HandleAsync_IsNoOp_WhenAlreadyActive()
     {
         // Arrange
-        var user = User.Create("Luiz Palma", Email.Create("luiz@example.com"));
+        var user = User.Create("Luiz Palma", Email.Create("luiz@example.com"), TestPasswordHashes.Any);
         RepositoryFinds(user);
 
         // Act

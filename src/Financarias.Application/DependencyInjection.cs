@@ -11,6 +11,7 @@ using Financarias.Application.Analytics.Mappers;
 using Financarias.Application.Analytics.Queries;
 using Financarias.Application.Analytics.UseCases;
 using Financarias.Application.Common.Messaging;
+using Financarias.Application.Common.Security;
 using Financarias.Application.Identity.Users.Commands;
 using Financarias.Application.Identity.Users.Mappers;
 using Financarias.Application.Identity.Users.Queries;
@@ -109,6 +110,8 @@ public static class DependencyInjection
         services.AddScoped<ICommandHandler<ActivateUserCommand, User>, ActivateUserCommandHandler>();
         services.AddScoped<IDeactivateUserUseCase, DeactivateUserUseCase>();
         services.AddScoped<ICommandHandler<DeactivateUserCommand, User>, DeactivateUserCommandHandler>();
+        services.AddScoped<ILoginUseCase, LoginUseCase>();
+        services.AddScoped<ICommandHandler<LoginCommand, IssuedAccessToken>, LoginCommandHandler>();
         services.AddScoped<IUserReads, UserReads>();
 
         services.AddScoped<IFuelReads, FuelReads>();

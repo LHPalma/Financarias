@@ -1,5 +1,7 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Financarias.Application.Common.Security;
 using Financarias.Infrastructure.Persistence;
 using Financarias.Infrastructure.Persistence.Interceptors;
 using Microsoft.AspNetCore.Hosting;
@@ -19,6 +21,7 @@ public class UserMutationsTests : IAsyncLifetime
     private readonly string _tag = Guid.NewGuid().ToString("N")[..8];
 
     private WebApplicationFactory<Program> _factory = null!;
+    private string _token = string.Empty;
 
     public async Task InitializeAsync()
     {
@@ -54,6 +57,8 @@ public class UserMutationsTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<FinancariasDbContext>();
         await db.Database.MigrateAsync();
+
+        _token = IssueToken(Guid.CreateVersion7());
     }
 
     public async Task DisposeAsync()
@@ -70,7 +75,7 @@ public class UserMutationsTests : IAsyncLifetime
 
         // Act
         var created = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Novo Usuário", email: "{{address}}" }) { id name email status } }""");
+            $$"""mutation { createUser(input: { name: "Novo Usuário", email: "{{address}}", password: "S3nha-Forte!" }) { id name email status } }""");
 
         // Assert
         var user = created.GetProperty("data").GetProperty("createUser");
@@ -80,7 +85,7 @@ public class UserMutationsTests : IAsyncLifetime
         Assert.Equal($"novo-{_tag}@example.com", user.GetProperty("email").GetString());
         Assert.Equal("ACTIVE", user.GetProperty("status").GetString());
 
-        var listed = await ExecuteAsync("{ users { id } }");
+        var listed = await ExecuteAsAsync("{ users { id } }");
         var ids = listed.GetProperty("data").GetProperty("users")
             .EnumerateArray().Select(u => u.GetProperty("id").GetGuid());
 
@@ -92,10 +97,32 @@ public class UserMutationsTests : IAsyncLifetime
     {
         // Act
         var response = await ExecuteAsync(
-            """mutation { createUser(input: { name: "Fulano", email: "nao-e-email" }) { id } }""");
+            """mutation { createUser(input: { name: "Fulano", email: "nao-e-email", password: "S3nha-Forte!" }) { id } }""");
 
         // Assert
         Assert.Equal("contacts.email.invalid", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "createUser com senha fora da política devolve o código da regra")]
+    public async Task CreateUser_WeakPassword_ReturnsDomainErrorCode()
+    {
+        // Act
+        var response = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Fraca", email: "fraca-{{_tag}}@example.com", password: "SemDigito!" }) { id } }""");
+
+        // Assert
+        Assert.Equal("identity.password.missingdigit", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "O hash de senha não existe no schema: pedir o campo é rejeitado")]
+    public async Task Users_DoesNotExposeThePasswordHash()
+    {
+        // Act
+        var response = await ExecuteAsAsync("{ users { id passwordHash } }");
+
+        // Assert: o UserType usa BindFieldsExplicitly, então o campo novo do agregado não vaza
+        Assert.False(response.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object);
+        Assert.Contains("passwordHash", response.GetProperty("errors")[0].GetProperty("message").GetString());
     }
 
     [Fact(DisplayName = "createUser com e-mail já em uso devolve identity.user.email.duplicate")]
@@ -104,11 +131,11 @@ public class UserMutationsTests : IAsyncLifetime
         // Arrange
         var address = $"duplicado-{_tag}@example.com";
         await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Primeiro", email: "{{address}}" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Primeiro", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
 
         // Act
         var response = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Segundo", email: "{{address}}" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Segundo", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
 
         // Assert
         Assert.Equal("identity.user.email.duplicate", FirstErrorCode(response));
@@ -120,11 +147,11 @@ public class UserMutationsTests : IAsyncLifetime
     {
         // Arrange
         var created = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Some", email: "some-{{_tag}}@example.com" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Some", email: "some-{{_tag}}@example.com", password: "S3nha-Forte!" }) { id } }""");
         var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
 
         // Act
-        var deactivated = await ExecuteAsync(
+        var deactivated = await ExecuteAsAsync(
             $$"""mutation { deactivateUser(id: "{{id}}") { id status } }""");
 
         // Assert
@@ -140,7 +167,7 @@ public class UserMutationsTests : IAsyncLifetime
     public async Task DeactivateUser_UnknownId_ReturnsDomainErrorCode()
     {
         // Act
-        var response = await ExecuteAsync(
+        var response = await ExecuteAsAsync(
             $$"""mutation { deactivateUser(id: "{{Guid.CreateVersion7()}}") { id } }""");
 
         // Assert
@@ -149,7 +176,7 @@ public class UserMutationsTests : IAsyncLifetime
 
     private async Task<List<Guid>> ListedIdsAsync(string query)
     {
-        var response = await ExecuteAsync(query);
+        var response = await ExecuteAsAsync(query);
 
         return response.GetProperty("data").GetProperty("users")
             .EnumerateArray().Select(u => u.GetProperty("id").GetGuid()).ToList();
@@ -161,14 +188,14 @@ public class UserMutationsTests : IAsyncLifetime
     {
         // Arrange
         var created = await ExecuteAsync(
-            $$"""mutation { createUser(input: { name: "Volta", email: "volta-{{_tag}}@example.com" }) { id } }""");
+            $$"""mutation { createUser(input: { name: "Volta", email: "volta-{{_tag}}@example.com", password: "S3nha-Forte!" }) { id } }""");
         var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
 
-        await ExecuteAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");
+        await ExecuteAsAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");
         Assert.DoesNotContain(id, await ListedIdsAsync("{ users { id } }"));
 
         // Act
-        var activated = await ExecuteAsync($$"""mutation { activateUser(id: "{{id}}") { id status } }""");
+        var activated = await ExecuteAsAsync($$"""mutation { activateUser(id: "{{id}}") { id status } }""");
 
         // Assert
         Assert.Equal(
@@ -178,12 +205,134 @@ public class UserMutationsTests : IAsyncLifetime
         Assert.Contains(id, await ListedIdsAsync("{ users { id } }"));
     }
 
+    [Fact(DisplayName = "deactivateUser sem token é recusado e o usuário continua ativo")]
+    public async Task DeactivateUser_IsRejected_WithoutToken()
+    {
+        // Arrange
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Alvo", email: "alvo-{{_tag}}@example.com", password: "S3nha-Forte!" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+
+        // Act
+        var response = await ExecuteAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");
+
+        // Assert
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+        Assert.Contains(id, await ListedIdsAsync("{ users { id } }"));
+    }
+
+    [Fact(DisplayName = "activateUser sem token é recusado e o usuário continua inativo")]
+    public async Task ActivateUser_IsRejected_WithoutToken()
+    {
+        // Arrange
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Parado", email: "parado-{{_tag}}@example.com", password: "S3nha-Forte!" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+        await ExecuteAsAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");
+
+        // Act
+        var response = await ExecuteAsync($$"""mutation { activateUser(id: "{{id}}") { id } }""");
+
+        // Assert
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+        Assert.DoesNotContain(id, await ListedIdsAsync("{ users { id } }"));
+    }
+
+    [Fact(DisplayName = "createUser, login e me: o token do login abre a área autenticada")]
+    public async Task Login_ReturnsTokenThatIdentifiesTheUser_OnMe()
+    {
+        // Arrange
+        var address = $"fluxo-{_tag}@example.com";
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Fluxo", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+
+        // Act
+        var login = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "S3nha-Forte!" }) { accessToken } }""");
+        var token = login.GetProperty("data").GetProperty("login").GetProperty("accessToken").GetString();
+        var me = await ExecuteAsync("{ me { id email } }", token);
+
+        // Assert
+        var user = me.GetProperty("data").GetProperty("me");
+        Assert.Equal(id, user.GetProperty("id").GetGuid());
+        Assert.Equal(address, user.GetProperty("email").GetString());
+    }
+
+    [Fact(DisplayName = "login com senha errada devolve identity.credentials.invalid, sem exigir token")]
+    public async Task Login_WrongPassword_ReturnsDomainErrorCode()
+    {
+        // Arrange
+        var address = $"errada-{_tag}@example.com";
+        await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Errada", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
+
+        // Act
+        var response = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "Outra-Senha1!" }) { accessToken } }""");
+
+        // Assert
+        Assert.Equal("identity.credentials.invalid", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "login com e-mail inexistente devolve o mesmo código da senha errada")]
+    public async Task Login_UnknownEmail_ReturnsTheSameCodeAsWrongPassword()
+    {
+        // Act
+        var response = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "ninguem-{{_tag}}@example.com", password: "S3nha-Forte!" }) { accessToken } }""");
+
+        // Assert: distinguir os dois faria do login um oráculo de cadastro (RN-03)
+        Assert.Equal("identity.credentials.invalid", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "login de usuário desativado, com a senha certa, é recusado como credencial inválida")]
+    public async Task Login_InactiveUser_ReturnsDomainErrorCode()
+    {
+        // Arrange
+        var address = $"inativo-{_tag}@example.com";
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "Inativo", email: "{{address}}", password: "S3nha-Forte!" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+        await ExecuteAsAsync($$"""mutation { deactivateUser(id: "{{id}}") { id } }""");
+
+        // Act
+        var response = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "S3nha-Forte!" }) { accessToken } }""");
+
+        // Assert
+        Assert.Equal("identity.credentials.invalid", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "login com e-mail malformado devolve identity.credentials.invalid, não o erro de formato")]
+    public async Task Login_MalformedEmail_ReturnsCredentialsInvalid()
+    {
+        // Act
+        var response = await ExecuteAsync(
+            """mutation { login(input: { email: "nao-e-email", password: "S3nha-Forte!" }) { accessToken } }""");
+
+        // Assert
+        Assert.Equal("identity.credentials.invalid", FirstErrorCode(response));
+    }
+
     private static string? FirstErrorCode(JsonElement response) =>
         response.GetProperty("errors")[0].GetProperty("extensions").GetProperty("code").GetString();
 
-    private async Task<JsonElement> ExecuteAsync(string query)
+    private string IssueToken(Guid userId) =>
+        _factory.Services.GetRequiredService<IAccessTokenIssuer>().Issue(userId).Token;
+
+    private Task<JsonElement> ExecuteAsAsync(string query) => ExecuteAsync(query, _token);
+
+    private async Task<JsonElement> ExecuteAsync(string query, string? bearerToken = null)
     {
-        var response = await _factory.CreateClient().PostAsJsonAsync("/graphql", new { query });
+        var client = _factory.CreateClient();
+
+        if (bearerToken is not null)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+        }
+
+        var response = await client.PostAsJsonAsync("/graphql", new { query });
         var payload = await response.Content.ReadAsStringAsync();
 
         return JsonDocument.Parse(payload).RootElement.Clone();

@@ -1,5 +1,9 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
+using Financarias.Api.Security;
+using Financarias.Application.Common.Security;
 using Financarias.Domain.Contacts;
 using Financarias.Domain.Identity;
 using Financarias.Infrastructure.Persistence;
@@ -11,6 +15,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Testcontainers.PostgreSql;
 
 namespace Financarias.Api.FunctionalTests.GraphQL;
@@ -62,8 +69,8 @@ public class UserQueriesTests : IAsyncLifetime
 
         _activeEmail = $"ativo-{_tag}@example.com";
 
-        var active = User.Create("Ativo", Email.Create($"Ativo-{_tag}@Example.com"));
-        var inactive = User.Create("Inativo", Email.Create($"inativo-{_tag}@example.com"));
+        var active = User.Create("Ativo", Email.Create($"Ativo-{_tag}@Example.com"), TestPasswordHashes.Any);
+        var inactive = User.Create("Inativo", Email.Create($"inativo-{_tag}@example.com"), TestPasswordHashes.Any);
         inactive.Deactivate();
 
         db.Users.AddRange(active, inactive);
@@ -100,7 +107,8 @@ public class UserQueriesTests : IAsyncLifetime
         // Act
         var user = await QueryAsync(
             $$"""{ user(id: "{{_activeId}}") { id name email status createdAt updatedAt } }""",
-            "user");
+            "user",
+            bearerToken: IssueToken(_activeId));
 
         // Assert
         Assert.Equal("Ativo", user.GetProperty("name").GetString());
@@ -113,8 +121,9 @@ public class UserQueriesTests : IAsyncLifetime
     public async Task Users_HidesInactive_ByDefault()
     {
         // Act
-        var byDefault = await QueryAsync("{ users { id } }", "users");
-        var withInactive = await QueryAsync("{ users(includeInactive: true) { id } }", "users");
+        var token = IssueToken(_activeId);
+        var byDefault = await QueryAsync("{ users { id } }", "users", bearerToken: token);
+        var withInactive = await QueryAsync("{ users(includeInactive: true) { id } }", "users", bearerToken: token);
 
         // Assert
         var defaultIds = byDefault.EnumerateArray().Select(u => u.GetProperty("id").GetGuid()).ToList();
@@ -125,34 +134,124 @@ public class UserQueriesTests : IAsyncLifetime
         Assert.Contains(_inactiveId, allIds);
     }
 
-    [Fact(DisplayName = "Query me devolve o usuário do header X-User-Id")]
-    public async Task Me_ReturnsUser_FromHeader()
+    [Fact(DisplayName = "Query me devolve o usuário do token Bearer")]
+    public async Task Me_ReturnsUser_FromBearerToken()
     {
+        // Arrange
+        var token = IssueToken(_activeId);
+
         // Act
-        var me = await QueryAsync("{ me { id name email } }", "me", _activeId);
+        var me = await QueryAsync("{ me { id name email } }", "me", bearerToken: token);
 
         // Assert
         Assert.Equal(_activeId, me.GetProperty("id").GetGuid());
         Assert.Equal(_activeEmail, me.GetProperty("email").GetString());
     }
 
-    [Fact(DisplayName = "Query me devolve nulo quando não há usuário corrente")]
-    public async Task Me_ReturnsNull_WithoutHeader()
+    [Theory(DisplayName = "Queries de identidade sem token são recusadas com AUTH_NOT_AUTHENTICATED")]
+    [InlineData("{ me { id } }")]
+    [InlineData("{ users { id } }")]
+    public async Task IdentityQueries_AreRejected_WithoutToken(string query)
     {
         // Act
-        var me = await QueryAsync("{ me { id } }", "me");
+        var response = await ExecuteAsync(query);
 
         // Assert
-        Assert.Equal(JsonValueKind.Null, me.ValueKind);
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
     }
 
-    private async Task<JsonElement> QueryAsync(string query, string field, Guid? currentUser = null)
+    [Fact(DisplayName = "Query user sem token é recusada e não devolve o usuário")]
+    public async Task User_IsRejected_WithoutToken()
+    {
+        // Act
+        var response = await ExecuteAsync($$"""{ user(id: "{{_activeId}}") { id email } }""");
+
+        // Assert
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+        Assert.DoesNotContain(_activeEmail, response.GetRawText());
+    }
+
+    [Fact(DisplayName = "O header X-User-Id deixou de identificar alguém")]
+    public async Task Me_IgnoresTheLegacyUserIdHeader()
+    {
+        // Act
+        var response = await ExecuteAsync("{ me { id } }", legacyUserIdHeader: _activeId);
+
+        // Assert: era o adaptador provisório, que acreditava em qualquer id mandado no header
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+    }
+
+    [Theory(DisplayName = "Token forjado, expirado ou de outro emissor é recusado como não autenticado")]
+    [InlineData("assinatura")]
+    [InlineData("expirado")]
+    [InlineData("emissor")]
+    [InlineData("audiencia")]
+    public async Task Me_IsRejected_ForAnInvalidToken(string defect)
+    {
+        // Arrange
+        var jwt = _factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value;
+        var now = DateTime.UtcNow;
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = defect == "emissor" ? "outro-emissor" : jwt.Issuer,
+            Audience = defect == "audiencia" ? "outra-api" : jwt.Audience,
+            NotBefore = defect == "expirado" ? now.AddHours(-2) : now,
+            IssuedAt = defect == "expirado" ? now.AddHours(-2) : now,
+            Expires = defect == "expirado" ? now.AddHours(-1) : now.AddHours(1),
+            Claims = new Dictionary<string, object> { [JwtRegisteredClaimNames.Sub] = _activeId.ToString() },
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(defect == "assinatura"
+                    ? RandomNumberGenerator.GetBytes(32)
+                    : Convert.FromBase64String(jwt.SigningKey)),
+                SecurityAlgorithms.HmacSha256)
+        };
+
+        var token = new JsonWebTokenHandler().CreateToken(descriptor);
+
+        // Act
+        var response = await ExecuteAsync("{ me { id } }", bearerToken: token);
+
+        // Assert: o middleware só deixa o usuário anônimo; quem recusa é o [Authorize] do resolver
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+    }
+
+    private string IssueToken(Guid userId) =>
+        _factory.Services.GetRequiredService<IAccessTokenIssuer>().Issue(userId).Token;
+
+    private static string? FirstErrorCode(JsonElement response) =>
+        response.GetProperty("errors")[0].GetProperty("extensions").GetProperty("code").GetString();
+
+    private async Task<JsonElement> QueryAsync(
+        string query,
+        string field,
+        string? bearerToken = null,
+        Guid? legacyUserIdHeader = null)
+    {
+        var root = await ExecuteAsync(query, bearerToken, legacyUserIdHeader);
+
+        Assert.False(
+            root.TryGetProperty("errors", out var errors),
+            $"GraphQL devolveu erros: {errors}");
+
+        return root.GetProperty("data").GetProperty(field).Clone();
+    }
+
+    private async Task<JsonElement> ExecuteAsync(
+        string query,
+        string? bearerToken = null,
+        Guid? legacyUserIdHeader = null)
     {
         var client = _factory.CreateClient();
 
-        if (currentUser is not null)
+        if (bearerToken is not null)
         {
-            client.DefaultRequestHeaders.Add("X-User-Id", currentUser.Value.ToString());
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+        }
+
+        if (legacyUserIdHeader is not null)
+        {
+            client.DefaultRequestHeaders.Add("X-User-Id", legacyUserIdHeader.Value.ToString());
         }
 
         var response = await client.PostAsJsonAsync("/graphql", new { query });
@@ -161,10 +260,6 @@ public class UserQueriesTests : IAsyncLifetime
         var payload = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(payload);
 
-        Assert.False(
-            document.RootElement.TryGetProperty("errors", out var errors),
-            $"GraphQL devolveu erros: {errors}");
-
-        return document.RootElement.GetProperty("data").GetProperty(field).Clone();
+        return document.RootElement.Clone();
     }
 }

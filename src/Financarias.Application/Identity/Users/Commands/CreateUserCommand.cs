@@ -6,5 +6,6 @@ namespace Financarias.Application.Identity.Users.Commands;
 
 public sealed record CreateUserCommand(
     string Name,
-    Email Email
+    Email Email,
+    PasswordHash PasswordHash
 ) : ICommand<User>;

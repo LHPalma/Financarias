@@ -7,8 +7,8 @@ using Financarias.Application.Analytics.Financing.DTOs.Requests;
 using Financarias.Application.Analytics.Financing.DTOs.Results;
 using Financarias.Application.Analytics.Financing.UseCases;
 using Financarias.Application.Analytics.UseCases;
-using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.Common.Security;
+using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.Identity.Users.Queries;
 using Financarias.Application.MarketData.Cryptos.DTOs.Results;
 using Financarias.Application.MarketData.Cryptos.UseCases;
@@ -181,7 +181,6 @@ public class Query
     public Task<IQueryable<MunicipalityAveragePriceResult>> GetAveragePriceByMunicipalityAsync(
         FuelProduct product, string? state, IFuelReads reads, CancellationToken cancellationToken) =>
         reads.AveragePriceByMunicipality(product, state, cancellationToken);
-
 
     #endregion
 

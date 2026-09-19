@@ -141,6 +141,48 @@ public class Argon2PasswordHasherTests
         Assert.Throws<DomainValidationException>(() => Password.Create("senhafraca"));
     }
 
+    [Theory(DisplayName = "Com hash nulo, Verify devolve false para qualquer senha")]
+    [InlineData("S3nha-Forte!")]
+    [InlineData("")]
+    [InlineData("Descartavel-games-e-jogos-7!")]
+    public void Verify_ReturnsFalse_ForNullHash(string password)
+    {
+        // Arrange
+        var hasher = Hasher(current: 1, (1, PepperV1));
+
+        // Act & Assert: inclui a senha do próprio hash descartável — ele existe para gastar tempo,
+        // nunca para autenticar ninguém
+        Assert.False(hasher.Verify(null, password));
+    }
+
+    [Fact(DisplayName = "Verify com hash nulo funciona chamada várias vezes seguidas")]
+    public void Verify_ReturnsFalse_OnRepeatedCallsWithNullHash()
+    {
+        // Arrange
+        var hasher = Hasher(current: 1, (1, PepperV1));
+
+        // Act
+        var results = Enumerable.Range(0, 3).Select(_ => hasher.Verify(null, Secret)).ToList();
+
+        // Assert: a segunda chamada em diante reaproveita o hash descartável já derivado
+        Assert.All(results, Assert.False);
+    }
+
+    [Fact(DisplayName = "Hash nulo não impede a verificação normal do mesmo hasher")]
+    public void Verify_StillWorks_AfterANullHashCall()
+    {
+        // Arrange
+        var hasher = Hasher(current: 1, (1, PepperV1));
+        var hash = hasher.Hash(Password.Create(Secret));
+
+        // Act
+        hasher.Verify(null, "qualquer");
+
+        // Assert: o descartável é estado do hasher, e não pode contaminar quem tem hash de verdade
+        Assert.True(hasher.Verify(hash, Secret));
+        Assert.False(hasher.Verify(hash, "S3nha-Errada!"));
+    }
+
     private static Argon2PasswordHasher Hasher(int current, params (int Version, string Pepper)[] peppers) =>
         new(Options.Create(new PasswordHashingOptions
         {

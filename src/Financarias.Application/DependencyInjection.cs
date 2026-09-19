@@ -112,6 +112,8 @@ public static class DependencyInjection
         services.AddScoped<ICommandHandler<DeactivateUserCommand, User>, DeactivateUserCommandHandler>();
         services.AddScoped<ILoginUseCase, LoginUseCase>();
         services.AddScoped<ICommandHandler<LoginCommand, IssuedAccessToken>, LoginCommandHandler>();
+        services.AddScoped<IChangePasswordUseCase, ChangePasswordUseCase>();
+        services.AddScoped<ICommandHandler<ChangePasswordCommand, User>, ChangePasswordCommandHandler>();
         services.AddScoped<IUserReads, UserReads>();
 
         services.AddScoped<IFuelReads, FuelReads>();

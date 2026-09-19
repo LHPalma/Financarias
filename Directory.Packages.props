@@ -10,6 +10,7 @@
     <PackageVersion Include="CsvHelper" Version="33.1.0" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageVersion Include="ExcelDataReader" Version="3.9.0" />
+    <PackageVersion Include="HotChocolate.AspNetCore.Authorization" Version="16.6.6" />
     <PackageVersion Include="HotChocolate.Data" Version="16.6.6" />
     <PackageVersion Include="Isopoh.Cryptography.Argon2" Version="2.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />

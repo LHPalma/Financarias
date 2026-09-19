@@ -42,6 +42,7 @@ builder.Services
     .AddGraphQLServer()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
+    .AddAuthorization()
     .AddErrorFilter<DomainErrorFilter>()
     .AddType<FuelPriceType>()
     .AddType<UserType>()

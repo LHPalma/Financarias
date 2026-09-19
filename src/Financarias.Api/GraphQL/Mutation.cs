@@ -5,6 +5,7 @@ using Financarias.Application.Identity.Users.DTOs.Results;
 using Financarias.Application.Identity.Users.UseCases;
 using Financarias.Application.MarketData.Fuel.Import;
 using Financarias.Application.MarketData.Fuel.UseCases;
+using HotChocolate.Authorization;
 
 namespace Financarias.Api.GraphQL;
 
@@ -31,6 +32,7 @@ public class Mutation
         useCase.ExecuteAsync(input, cancellationToken);
 
     [GraphQLName("activateUser")]
+    [Authorize]
     public Task<UserResult> ActivateUserAsync(
         Guid id,
         IActivateUserUseCase useCase,
@@ -38,6 +40,7 @@ public class Mutation
         useCase.ExecuteAsync(id, cancellationToken);
 
     [GraphQLName("deactivateUser")]
+    [Authorize]
     public Task<UserResult> DeactivateUserAsync(
         Guid id,
         IDeactivateUserUseCase useCase,

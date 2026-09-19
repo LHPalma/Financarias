@@ -107,7 +107,8 @@ public class UserQueriesTests : IAsyncLifetime
         // Act
         var user = await QueryAsync(
             $$"""{ user(id: "{{_activeId}}") { id name email status createdAt updatedAt } }""",
-            "user");
+            "user",
+            bearerToken: IssueToken(_activeId));
 
         // Assert
         Assert.Equal("Ativo", user.GetProperty("name").GetString());
@@ -120,8 +121,9 @@ public class UserQueriesTests : IAsyncLifetime
     public async Task Users_HidesInactive_ByDefault()
     {
         // Act
-        var byDefault = await QueryAsync("{ users { id } }", "users");
-        var withInactive = await QueryAsync("{ users(includeInactive: true) { id } }", "users");
+        var token = IssueToken(_activeId);
+        var byDefault = await QueryAsync("{ users { id } }", "users", bearerToken: token);
+        var withInactive = await QueryAsync("{ users(includeInactive: true) { id } }", "users", bearerToken: token);
 
         // Assert
         var defaultIds = byDefault.EnumerateArray().Select(u => u.GetProperty("id").GetGuid()).ToList();
@@ -146,32 +148,45 @@ public class UserQueriesTests : IAsyncLifetime
         Assert.Equal(_activeEmail, me.GetProperty("email").GetString());
     }
 
-    [Fact(DisplayName = "Query me devolve nulo quando não há token")]
-    public async Task Me_ReturnsNull_WithoutToken()
+    [Theory(DisplayName = "Queries de identidade sem token são recusadas com AUTH_NOT_AUTHENTICATED")]
+    [InlineData("{ me { id } }")]
+    [InlineData("{ users { id } }")]
+    public async Task IdentityQueries_AreRejected_WithoutToken(string query)
     {
         // Act
-        var me = await QueryAsync("{ me { id } }", "me");
+        var response = await ExecuteAsync(query);
 
         // Assert
-        Assert.Equal(JsonValueKind.Null, me.ValueKind);
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "Query user sem token é recusada e não devolve o usuário")]
+    public async Task User_IsRejected_WithoutToken()
+    {
+        // Act
+        var response = await ExecuteAsync($$"""{ user(id: "{{_activeId}}") { id email } }""");
+
+        // Assert
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+        Assert.DoesNotContain(_activeEmail, response.GetRawText());
     }
 
     [Fact(DisplayName = "O header X-User-Id deixou de identificar alguém")]
     public async Task Me_IgnoresTheLegacyUserIdHeader()
     {
         // Act
-        var me = await QueryAsync("{ me { id } }", "me", legacyUserIdHeader: _activeId);
+        var response = await ExecuteAsync("{ me { id } }", legacyUserIdHeader: _activeId);
 
         // Assert: era o adaptador provisório, que acreditava em qualquer id mandado no header
-        Assert.Equal(JsonValueKind.Null, me.ValueKind);
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
     }
 
-    [Theory(DisplayName = "Token forjado, expirado ou de outro emissor não identifica ninguém")]
+    [Theory(DisplayName = "Token forjado, expirado ou de outro emissor é recusado como não autenticado")]
     [InlineData("assinatura")]
     [InlineData("expirado")]
     [InlineData("emissor")]
     [InlineData("audiencia")]
-    public async Task Me_ReturnsNull_ForAnInvalidToken(string defect)
+    public async Task Me_IsRejected_ForAnInvalidToken(string defect)
     {
         // Arrange
         var jwt = _factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value;
@@ -195,18 +210,35 @@ public class UserQueriesTests : IAsyncLifetime
         var token = new JsonWebTokenHandler().CreateToken(descriptor);
 
         // Act
-        var me = await QueryAsync("{ me { id } }", "me", bearerToken: token);
+        var response = await ExecuteAsync("{ me { id } }", bearerToken: token);
 
-        // Assert: sem [Authorize] o middleware não recusa a requisição — só não reconhece o usuário
-        Assert.Equal(JsonValueKind.Null, me.ValueKind);
+        // Assert: o middleware só deixa o usuário anônimo; quem recusa é o [Authorize] do resolver
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
     }
 
     private string IssueToken(Guid userId) =>
         _factory.Services.GetRequiredService<IAccessTokenIssuer>().Issue(userId).Token;
 
+    private static string? FirstErrorCode(JsonElement response) =>
+        response.GetProperty("errors")[0].GetProperty("extensions").GetProperty("code").GetString();
+
     private async Task<JsonElement> QueryAsync(
         string query,
         string field,
+        string? bearerToken = null,
+        Guid? legacyUserIdHeader = null)
+    {
+        var root = await ExecuteAsync(query, bearerToken, legacyUserIdHeader);
+
+        Assert.False(
+            root.TryGetProperty("errors", out var errors),
+            $"GraphQL devolveu erros: {errors}");
+
+        return root.GetProperty("data").GetProperty(field).Clone();
+    }
+
+    private async Task<JsonElement> ExecuteAsync(
+        string query,
         string? bearerToken = null,
         Guid? legacyUserIdHeader = null)
     {
@@ -228,10 +260,6 @@ public class UserQueriesTests : IAsyncLifetime
         var payload = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(payload);
 
-        Assert.False(
-            document.RootElement.TryGetProperty("errors", out var errors),
-            $"GraphQL devolveu erros: {errors}");
-
-        return document.RootElement.GetProperty("data").GetProperty(field).Clone();
+        return document.RootElement.Clone();
     }
 }

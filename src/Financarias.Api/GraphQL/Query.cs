@@ -26,6 +26,7 @@ using Financarias.Domain.Identity;
 using Financarias.Domain.MarketData;
 using Financarias.Domain.MarketData.Cryptos;
 using Financarias.Domain.MarketData.Fuel;
+using HotChocolate.Authorization;
 
 namespace Financarias.Api.GraphQL;
 
@@ -187,6 +188,7 @@ public class Query
     #region Identity
 
     [GraphQLName("users")]
+    [Authorize]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
@@ -196,12 +198,14 @@ public class Query
             : reads.Users().Where(user => user.Status == UserStatus.Active);
 
     [GraphQLName("user")]
+    [Authorize]
     [UseFirstOrDefault]
     [UseProjection]
     public IQueryable<User> GetUserById(Guid id, IUserReads reads) =>
         reads.Users().Where(user => user.Id == id);
 
     [GraphQLName("me")]
+    [Authorize]
     [UseFirstOrDefault]
     [UseProjection]
     public IQueryable<User> GetCurrentUser(IUserReads reads, ICurrentUser currentUser) =>

@@ -315,6 +315,115 @@ public class UserMutationsTests : IAsyncLifetime
         Assert.Equal("identity.credentials.invalid", FirstErrorCode(response));
     }
 
+    [Fact(DisplayName = "changePassword troca a senha: a nova entra no login e a antiga deixa de valer")]
+    public async Task ChangePassword_SwapsTheCredential()
+    {
+        // Arrange
+        var (address, token) = await CreateUserWithTokenAsync("troca", "Antiga-Senha1!");
+
+        // Act
+        var changed = await ExecuteAsync(
+            """mutation { changePassword(input: { currentPassword: "Antiga-Senha1!", newPassword: "Nova-Senha2@" }) { id email } }""",
+            token);
+
+        // Assert
+        Assert.Equal(address, changed.GetProperty("data").GetProperty("changePassword").GetProperty("email").GetString());
+
+        var withNew = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "Nova-Senha2@" }) { accessToken } }""");
+        Assert.NotNull(withNew.GetProperty("data").GetProperty("login").GetProperty("accessToken").GetString());
+
+        var withOld = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "Antiga-Senha1!" }) { accessToken } }""");
+        Assert.Equal("identity.credentials.invalid", FirstErrorCode(withOld));
+    }
+
+    [Fact(DisplayName = "changePassword age só sobre o dono do token, sem tocar na senha de outro usuário")]
+    public async Task ChangePassword_OnlyAffectsTheTokenOwner()
+    {
+        // Arrange
+        var (ownerAddress, ownerToken) = await CreateUserWithTokenAsync("dono", "Senha-Do-Dono1!");
+        var (otherAddress, _) = await CreateUserWithTokenAsync("outro", "Senha-Do-Outro1!");
+
+        // Act
+        var changed = await ExecuteAsync(
+            """mutation { changePassword(input: { currentPassword: "Senha-Do-Dono1!", newPassword: "Dono-Nova2@" }) { id } }""",
+            ownerToken);
+
+        // Assert: sem exigir que a troca do dono aconteceu, o teste passaria mesmo sem a mutation
+        Assert.False(changed.TryGetProperty("errors", out var errors), $"GraphQL devolveu erros: {errors}");
+
+        var owner = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{ownerAddress}}", password: "Dono-Nova2@" }) { accessToken } }""");
+        Assert.NotNull(owner.GetProperty("data").GetProperty("login").GetProperty("accessToken").GetString());
+
+        var other = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{otherAddress}}", password: "Senha-Do-Outro1!" }) { accessToken } }""");
+        Assert.NotNull(other.GetProperty("data").GetProperty("login").GetProperty("accessToken").GetString());
+    }
+
+    [Fact(DisplayName = "changePassword com a senha atual errada devolve identity.password.currentincorrect e não troca nada")]
+    public async Task ChangePassword_WrongCurrentPassword_ReturnsDomainErrorCode()
+    {
+        // Arrange
+        var (address, token) = await CreateUserWithTokenAsync("errada-atual", "Antiga-Senha1!");
+
+        // Act
+        var response = await ExecuteAsync(
+            """mutation { changePassword(input: { currentPassword: "Chutada-Senha1!", newPassword: "Nova-Senha2@" }) { id } }""",
+            token);
+
+        // Assert
+        Assert.Equal("identity.password.currentincorrect", FirstErrorCode(response));
+
+        var stillOld = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "Antiga-Senha1!" }) { accessToken } }""");
+        Assert.NotNull(stillOld.GetProperty("data").GetProperty("login").GetProperty("accessToken").GetString());
+    }
+
+    [Fact(DisplayName = "changePassword com a senha nova fora da política devolve o código da regra")]
+    public async Task ChangePassword_WeakNewPassword_ReturnsDomainErrorCode()
+    {
+        // Arrange
+        var (_, token) = await CreateUserWithTokenAsync("fraca-nova", "Antiga-Senha1!");
+
+        // Act
+        var response = await ExecuteAsync(
+            """mutation { changePassword(input: { currentPassword: "Antiga-Senha1!", newPassword: "SemDigito!" }) { id } }""",
+            token);
+
+        // Assert
+        Assert.Equal("identity.password.missingdigit", FirstErrorCode(response));
+    }
+
+    [Fact(DisplayName = "changePassword sem token é recusado e a senha continua a mesma")]
+    public async Task ChangePassword_IsRejected_WithoutToken()
+    {
+        // Arrange
+        var (address, _) = await CreateUserWithTokenAsync("sem-token", "Antiga-Senha1!");
+
+        // Act
+        var response = await ExecuteAsync(
+            """mutation { changePassword(input: { currentPassword: "Antiga-Senha1!", newPassword: "Nova-Senha2@" }) { id } }""");
+
+        // Assert
+        Assert.Equal("AUTH_NOT_AUTHENTICATED", FirstErrorCode(response));
+
+        var stillOld = await ExecuteAsync(
+            $$"""mutation { login(input: { email: "{{address}}", password: "Antiga-Senha1!" }) { accessToken } }""");
+        Assert.NotNull(stillOld.GetProperty("data").GetProperty("login").GetProperty("accessToken").GetString());
+    }
+
+    private async Task<(string Address, string Token)> CreateUserWithTokenAsync(string label, string password)
+    {
+        var address = $"{label}-{_tag}@example.com";
+        var created = await ExecuteAsync(
+            $$"""mutation { createUser(input: { name: "{{label}}", email: "{{address}}", password: "{{password}}" }) { id } }""");
+        var id = created.GetProperty("data").GetProperty("createUser").GetProperty("id").GetGuid();
+
+        return (address, IssueToken(id));
+    }
+
     private static string? FirstErrorCode(JsonElement response) =>
         response.GetProperty("errors")[0].GetProperty("extensions").GetProperty("code").GetString();
 

@@ -48,4 +48,6 @@ public class User :
     public void Deactivate() => Status = UserStatus.Inactive;
 
     public void Activate() => Status = UserStatus.Active;
+
+    public void ChangePassword(PasswordHash passwordHash) => PasswordHash = passwordHash;
 }

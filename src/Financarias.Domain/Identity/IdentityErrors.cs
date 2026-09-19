@@ -5,6 +5,7 @@ namespace Financarias.Domain.Identity;
 public static class IdentityErrors
 {
     public const string CredentialsInvalid = "identity.credentials.invalid";
+    public const string PasswordCurrentIncorrect = "identity.password.currentincorrect";
     public const string PasswordHashInvalid = "identity.passwordhash.invalid";
     public const string PasswordMissingDigit = "identity.password.missingdigit";
     public const string PasswordMissingLowercase = "identity.password.missinglowercase";
@@ -39,6 +40,9 @@ public static class IdentityErrors
 
     public static DomainValidationException NotFound(Guid id) =>
         new(UserNotFound, $"User not found: '{id}'.");
+
+    public static DomainValidationException IncorrectCurrentPassword() =>
+        new(PasswordCurrentIncorrect, "Current password is incorrect.");
 
     public static DomainValidationException PasswordLongerThan(int maximum) =>
         new(PasswordTooLong, $"Password must be at most {maximum} characters.");

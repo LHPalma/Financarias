@@ -40,6 +40,7 @@ public class DomainErrorCatalogTests
             "identity.user.name.required",
             "identity.credentials.invalid",
             "identity.passwordhash.invalid",
+            "identity.password.currentincorrect",
             "identity.password.missingdigit",
             "identity.password.missinglowercase",
             "identity.password.missingspecial",

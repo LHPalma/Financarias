@@ -102,6 +102,29 @@ public class UserTests
         Assert.Equal(UserStatus.Active, user.Status);
     }
 
+    [Fact(DisplayName = "ChangePassword troca o hash e não mexe no resto do usuário")]
+    public void ChangePassword_ReplacesHash_KeepingTheRest()
+    {
+        // Arrange
+        var user = CreateUser();
+        var id = user.Id;
+        var email = user.Email;
+        var newHash = PasswordHash.Create(
+            "$argon2id$v=19$m=19456,t=2,p=1$b3V0cm9zYWx0$b3V0cm9oYXNo",
+            pepperVersion: 2);
+
+        // Act
+        user.ChangePassword(newHash);
+
+        // Assert
+        Assert.Equal(newHash, user.PasswordHash);
+        Assert.NotEqual(TestPasswordHashes.Any, user.PasswordHash);
+        Assert.Equal(id, user.Id);
+        Assert.Equal("Luiz Palma", user.Name);
+        Assert.Equal(email, user.Email);
+        Assert.Equal(UserStatus.Active, user.Status);
+    }
+
     [Fact(DisplayName = "O agregado não carimba auditoria — isso é trabalho da infraestrutura")]
     public void Create_LeavesAuditFieldsUntouched()
     {

@@ -31,6 +31,14 @@ public class Mutation
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(input, cancellationToken);
 
+    [GraphQLName("changePassword")]
+    [Authorize]
+    public Task<UserResult> ChangePasswordAsync(
+        ChangePasswordRequest input,
+        IChangePasswordUseCase useCase,
+        CancellationToken cancellationToken) =>
+        useCase.ExecuteAsync(input, cancellationToken);
+
     [GraphQLName("activateUser")]
     [Authorize]
     public Task<UserResult> ActivateUserAsync(

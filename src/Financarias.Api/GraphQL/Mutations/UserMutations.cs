@@ -1,22 +1,13 @@
-﻿using Financarias.Application.Holidays.Import;
-using Financarias.Application.Holidays.UseCases;
 using Financarias.Application.Identity.Users.DTOs.Requests;
 using Financarias.Application.Identity.Users.DTOs.Results;
 using Financarias.Application.Identity.Users.UseCases;
-using Financarias.Application.MarketData.Fuel.Import;
-using Financarias.Application.MarketData.Fuel.UseCases;
 using HotChocolate.Authorization;
 
-namespace Financarias.Api.GraphQL;
+namespace Financarias.Api.GraphQL.Mutations;
 
-public class Mutation
+[ExtendObjectType(OperationTypeNames.Mutation)]
+public class UserMutations
 {
-    [GraphQLName("importHolidays")]
-    public Task<HolidayImportResult> ImportHolidaysAsync(
-        IImportHolidaysUseCase useCase,
-        CancellationToken cancellationToken) =>
-        useCase.ExecuteAsync(cancellationToken);
-
     [GraphQLName("createUser")]
     public Task<UserResult> CreateUserAsync(
         CreateUserRequest input,
@@ -54,10 +45,4 @@ public class Mutation
         IDeactivateUserUseCase useCase,
         CancellationToken cancellationToken) =>
         useCase.ExecuteAsync(id, cancellationToken);
-
-    [GraphQLName("importFuelPrices")]
-    public Task<FuelImportResult> ImportFuelPricesAsync(
-        IImportFuelPricesUseCase useCase,
-        CancellationToken cancellationToken) =>
-        useCase.ExecuteAsync(cancellationToken);
 }

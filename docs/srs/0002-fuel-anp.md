@@ -66,7 +66,7 @@ Integrations/MarketData/Anp/Fuel
 ├── Clients/IAnpFuelClient                         (Refit, devolve Stream)
 └── Providers/AnpFuelProvider                      (implementa IFuelPriceProvider)
 
-Api/GraphQL/Mutation.cs                            (importFuelPrices)
+Api/GraphQL/Mutations/FuelMutations.cs            (importFuelPrices)
 ```
 
 ### 2.2 Fluxo (escrita — resolver → UseCase → CommandHandler)

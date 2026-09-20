@@ -49,7 +49,7 @@ Integrations/MarketData/ErApi
 ├── DTOs/Responses/ErApiLatestResponse
 └── Providers/ErApiRateProvider         (implementa IFxRateGateway)
 
-Api/GraphQL/Query.cs                     (resolvers convertCurrency, currencyPrices)
+Api/GraphQL/Queries/ForeignExchangeQueries.cs (resolvers convertCurrency, currencyPrices)
 ```
 
 ### 2.2 Fluxo (Estilo A — resolver → UseCase → QueryHandler → resultado)

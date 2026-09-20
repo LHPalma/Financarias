@@ -1,4 +1,6 @@
 using Financarias.Api.GraphQL;
+using Financarias.Api.GraphQL.Mutations;
+using Financarias.Api.GraphQL.Queries;
 using Financarias.Api.GraphQL.Types;
 using Financarias.Api.Security;
 using Financarias.Application;
@@ -40,8 +42,21 @@ builder.Services.AddAccessTokenAuthentication();
 
 builder.Services
     .AddGraphQLServer()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
+    .AddQueryType(descriptor => descriptor.Name(OperationTypeNames.Query))
+    .AddTypeExtension<AddressQueries>()
+    .AddTypeExtension<NtnbQueries>()
+    .AddTypeExtension<FinancingQueries>()
+    .AddTypeExtension<HolidayQueries>()
+    .AddTypeExtension<StockQueries>()
+    .AddTypeExtension<CryptoQueries>()
+    .AddTypeExtension<NewsQueries>()
+    .AddTypeExtension<ForeignExchangeQueries>()
+    .AddTypeExtension<FuelQueries>()
+    .AddTypeExtension<UserQueries>()
+    .AddMutationType(descriptor => descriptor.Name(OperationTypeNames.Mutation))
+    .AddTypeExtension<HolidayMutations>()
+    .AddTypeExtension<FuelMutations>()
+    .AddTypeExtension<UserMutations>()
     .AddAuthorization()
     .AddErrorFilter<DomainErrorFilter>()
     .AddType<FuelPriceType>()

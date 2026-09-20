@@ -64,7 +64,7 @@ Application/Analytics/Financing
 ├── Queries/{SimulateFinancing, SimulateEarlyPayoff}{Query, QueryHandler}
 └── UseCases/{ISimulateFinancing, ISimulateEarlyPayoff}UseCase (+ impls)
 
-Api/GraphQL/Query.cs           (resolvers simulateFinancing, simulateEarlyPayoff)
+Api/GraphQL/Queries/FinancingQueries.cs (resolvers simulateFinancing, simulateEarlyPayoff)
 ```
 
 Os mappers mapeiam **nos dois sentidos** — request cru → query com VOs, e record de domínio → DTO. O caminho de volta existe (diferente do `CalculateNtnbPriceMapper`, onde o handler monta o resultado à mão) porque a tabela tem dezenas de linhas de campos idênticos: a projeção manual seria um `Select` que só renomeia a coleção.

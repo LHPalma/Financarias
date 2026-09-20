@@ -60,6 +60,7 @@ builder.Services
     .AddAuthorization()
     .AddErrorFilter<DomainErrorFilter>()
     .AddType<FuelPriceType>()
+    .AddType<FuelStationType>()
     .AddType<UserType>()
     .AddProjections()
     .AddFiltering()

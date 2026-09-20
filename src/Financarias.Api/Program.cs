@@ -42,7 +42,9 @@ builder.Services.AddAccessTokenAuthentication();
 
 builder.Services
     .AddGraphQLServer()
-    .AddQueryType(descriptor => descriptor.Name(OperationTypeNames.Query))
+    .AddQueryType(descriptor => descriptor
+        .Name(OperationTypeNames.Query)
+        .Description("Consultas: operações de leitura e cálculo, que não alteram dados."))
     .AddTypeExtension<AddressQueries>()
     .AddTypeExtension<NtnbQueries>()
     .AddTypeExtension<FinancingQueries>()
@@ -53,7 +55,9 @@ builder.Services
     .AddTypeExtension<ForeignExchangeQueries>()
     .AddTypeExtension<FuelQueries>()
     .AddTypeExtension<UserQueries>()
-    .AddMutationType(descriptor => descriptor.Name(OperationTypeNames.Mutation))
+    .AddMutationType(descriptor => descriptor
+        .Name(OperationTypeNames.Mutation)
+        .Description("Mutações: operações que alteram dados."))
     .AddTypeExtension<HolidayMutations>()
     .AddTypeExtension<FuelMutations>()
     .AddTypeExtension<UserMutations>()

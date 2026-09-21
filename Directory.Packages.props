@@ -30,7 +30,7 @@
     <!-- Application / DI -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <!-- Integrations -->
-    <PackageVersion Include="Refit" Version="15.2.0" />
+    <PackageVersion Include="Refit" Version="16.1.0" />
     <PackageVersion Include="Refit.HttpClientFactory" Version="15.2.0" />
     <!-- Tests -->
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />

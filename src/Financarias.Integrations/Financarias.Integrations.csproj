@@ -11,6 +11,7 @@
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
         <PackageReference Include="Refit"/>
         <PackageReference Include="Refit.HttpClientFactory"/>
+        <PackageReference Include="Refit.Reflection"/>
         <PackageReference Include="System.ServiceModel.Syndication"/>
         <PackageReference Include="System.Text.Encoding.CodePages"/>
     </ItemGroup>

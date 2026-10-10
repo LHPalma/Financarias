@@ -5,7 +5,7 @@ namespace Financarias.Domain.MarketData;
 
 public sealed partial record Ticker
 {
-    [GeneratedRegex(@"^[A-Z]{4}\d{1,2}F?$")]
+    [GeneratedRegex(@"^[A-Z][A-Z0-9]{3}\d{1,2}F?$")]
     private static partial Regex TickerPattern();
 
     private Ticker(string value) => Value = value;

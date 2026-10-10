@@ -11,6 +11,10 @@ public class TickerTests
     [InlineData("  petr4  ", "PETR4")]
     [InlineData("bova11", "BOVA11")]
     [InlineData("petr4f", "PETR4F")]
+    [InlineData("b3sa3", "B3SA3")]      // dígito na raiz
+    [InlineData("aapl34", "AAPL34")]    // BDR
+    [InlineData("v1ip34", "V1IP34")]    // BDR com dígito na raiz
+    [InlineData("b1003", "B1003")]      // ETF
     public void Create_WithValidInput_NormalizesValue(string input, string expected)
     {
         // Act
@@ -31,6 +35,9 @@ public class TickerTests
     [InlineData("PETR4X")]      // sufixo inválido
     [InlineData("PETR4FF")]     // sufixo duplicado
     [InlineData("PE TR4")]      // espaço interno
+    [InlineData("3SA33")]       // começa com dígito
+    [InlineData("B3SA")]        // sem dígito final
+    [InlineData("B3-A3")]       // caractere fora de A-Z e 0-9
     public void Create_WithInvalidInput_ThrowsInvalidTickerException(string? input)
     {
         // Act & Assert

@@ -7,5 +7,5 @@ public static class MarketDataErrors
     public const string TickerInvalid = "stock.ticker.invalid";
 
     public static DomainValidationException Ticker(string? ticker) =>
-        new(TickerInvalid, $"Ticker not valid: '{ticker}'. Expected 4 letters followed by 1-2 digits (e.g. 'PETR4').");
+        new(TickerInvalid, $"Ticker not valid: '{ticker}'. Expected a letter, 3 letters or digits, then 1-2 digits (e.g. 'PETR4', 'B3SA3', 'AAPL34').");
 }

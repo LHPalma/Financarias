@@ -139,7 +139,7 @@ public sealed class DailyQuote : BaseEntity<long>, IAggregateRoot
         QuoteFactor = quoteFactor;
     }
 
-    private static void EnsureValid(
+    public static string? GetFiguresError(
         decimal openPrice,
         decimal highPrice,
         decimal lowPrice,
@@ -151,27 +151,45 @@ public sealed class DailyQuote : BaseEntity<long>, IAggregateRoot
     {
         if (openPrice <= 0 || highPrice <= 0 || lowPrice <= 0 || averagePrice <= 0 || closePrice <= 0)
         {
-            throw MarketDataErrors.Quote("prices must be positive");
+            return "prices must be positive";
         }
 
         if (highPrice < lowPrice)
         {
-            throw MarketDataErrors.Quote($"high price {highPrice} is below low price {lowPrice}");
+            return $"high price {highPrice} is below low price {lowPrice}";
         }
 
         if (trades <= 0)
         {
-            throw MarketDataErrors.Quote($"trades must be positive, got {trades}");
+            return $"trades must be positive, got {trades}";
         }
 
         if (quantity <= 0)
         {
-            throw MarketDataErrors.Quote($"quantity must be positive, got {quantity}");
+            return $"quantity must be positive, got {quantity}";
         }
 
         if (quoteFactor <= 0)
         {
-            throw MarketDataErrors.Quote($"quote factor must be positive, got {quoteFactor}");
+            return $"quote factor must be positive, got {quoteFactor}";
+        }
+
+        return null;
+    }
+
+    private static void EnsureValid(
+        decimal openPrice,
+        decimal highPrice,
+        decimal lowPrice,
+        decimal averagePrice,
+        decimal closePrice,
+        int trades,
+        long quantity,
+        int quoteFactor)
+    {
+        if (GetFiguresError(openPrice, highPrice, lowPrice, averagePrice, closePrice, trades, quantity, quoteFactor) is { } reason)
+        {
+            throw MarketDataErrors.Quote(reason);
         }
     }
 }

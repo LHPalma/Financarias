@@ -130,6 +130,34 @@ public class DailyQuoteTests
         Assert.Equal(38.10m, quote.OpenPrice);
     }
 
+    [Fact(DisplayName = "GetFiguresError devolve nulo quando os valores são válidos")]
+    public void GetFiguresError_WithValidFigures_ReturnsNull()
+    {
+        // Act
+        var error = DailyQuote.GetFiguresError(38.10m, 38.90m, 37.80m, 38.40m, 38.70m, 52_310, 41_250_300, 1);
+
+        // Assert
+        Assert.Null(error);
+    }
+
+    [Theory(DisplayName = "GetFiguresError descreve o problema quando algum valor é inválido")]
+    [InlineData(0, 38.90, 37.80, 38.40, 38.70, 1, 1, 1, "prices must be positive")]
+    [InlineData(38.10, 37.00, 37.80, 38.40, 38.70, 1, 1, 1, "is below low price")]
+    [InlineData(38.10, 38.90, 37.80, 38.40, 38.70, 0, 1, 1, "trades must be positive")]
+    [InlineData(38.10, 38.90, 37.80, 38.40, 38.70, 1, 0, 1, "quantity must be positive")]
+    [InlineData(38.10, 38.90, 37.80, 38.40, 38.70, 1, 1, 0, "quote factor must be positive")]
+    public void GetFiguresError_WithInvalidFigures_DescribesTheProblem(
+        double open, double high, double low, double average, double close, int trades, long quantity, int quoteFactor, string expectedFragment)
+    {
+        // Act
+        var error = DailyQuote.GetFiguresError(
+            (decimal)open, (decimal)high, (decimal)low, (decimal)average, (decimal)close, trades, quantity, quoteFactor);
+
+        // Assert
+        Assert.NotNull(error);
+        Assert.Contains(expectedFragment, error);
+    }
+
     private static DailyQuote CreateQuote(
         decimal open = 38.10m,
         decimal high = 38.90m,

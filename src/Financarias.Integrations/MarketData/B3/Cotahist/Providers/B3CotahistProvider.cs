@@ -37,11 +37,11 @@ public class B3CotahistProvider(
             throw;
         }
 
-        var entry = archive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".TXT", StringComparison.OrdinalIgnoreCase));
+        var entry = archive.Entries.FirstOrDefault(e => e.Name.StartsWith("COTAHIST", StringComparison.OrdinalIgnoreCase));
         if (entry is null)
         {
             archive.Dispose();
-            throw new InvalidDataException($"No .TXT entry found in {fileName}.");
+            throw new InvalidDataException($"No COTAHIST entry found in {fileName}.");
         }
 
         return new CotahistFile(archive, entry, logger);

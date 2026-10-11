@@ -164,14 +164,29 @@ public class B3CotahistProviderTests
         Assert.Contains(_logger.Warnings, warning => warning.Contains("no readable trailer", StringComparison.Ordinal));
     }
 
-    [Fact(DisplayName = "OpenAsync lança InvalidDataException quando o ZIP não tem entrada .TXT")]
-    public async Task OpenAsync_Throws_WhenZipHasNoTxtEntry()
+    [Fact(DisplayName = "OpenAsync lança InvalidDataException quando o ZIP não tem entrada COTAHIST")]
+    public async Task OpenAsync_Throws_WhenZipHasNoCotahistEntry()
     {
         // Arrange
         GivenClientReturns(Zip("LEIAME.md", "nada aqui"));
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidDataException>(() => _provider.OpenAsync(DayPeriod));
+    }
+
+    [Fact(DisplayName = "ReadAsync lê o ZIP cuja entrada não tem extensão .TXT (anuais até 2001, como COTAHIST.A1995)")]
+    public async Task ReadAsync_YieldsQuotes_WhenEntryHasNoTxtExtension()
+    {
+        // Arrange
+        GivenClientReturns(Zip("COTAHIST.A1995", Header, Petr4Line, Trailer(1)));
+
+        await using var file = await OpenFileAsync();
+
+        // Act
+        var items = await ReadAllAsync(file);
+
+        // Assert
+        Assert.Equal("PETR4", Assert.Single(items).Ticker.Value);
     }
 
     [Fact(DisplayName = "Descartar o arquivo apaga a cópia temporária do ZIP")]

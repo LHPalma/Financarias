@@ -24,6 +24,10 @@ using Financarias.Application.MarketData.Cryptos.UseCases;
 using Financarias.Application.MarketData.ForeignExchange.DTOs.Results;
 using Financarias.Application.MarketData.ForeignExchange.Queries;
 using Financarias.Application.MarketData.ForeignExchange.UseCases;
+using Financarias.Application.MarketData.CorporateEvents.Commands;
+using Financarias.Application.MarketData.CorporateEvents.Import;
+using Financarias.Application.MarketData.CorporateEvents.Queries;
+using Financarias.Application.MarketData.CorporateEvents.UseCases;
 using Financarias.Application.MarketData.Fuel.Commands;
 using Financarias.Application.MarketData.Fuel.DTOs.Results;
 using Financarias.Application.MarketData.Fuel.Import;
@@ -120,6 +124,12 @@ public static class DependencyInjection
         services
             .AddScoped<ICommandHandler<ImportIndicatorValuesCommand, IndicatorValueImportResult>,
                 ImportIndicatorValuesCommandHandler>();
+
+        services.AddScoped<IIssuerReads, IssuerReads>();
+        services.AddScoped<IImportCorporateEventsUseCase, ImportCorporateEventsUseCase>();
+        services
+            .AddScoped<ICommandHandler<ImportCorporateEventsCommand, CorporateEventImportResult>,
+                ImportCorporateEventsCommandHandler>();
 
         services.AddScoped<IFindEthanolGasolineParityUseCase, FindEthanolGasolineParityUseCase>();
         services

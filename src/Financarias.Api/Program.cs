@@ -63,6 +63,7 @@ builder.Services
     .AddTypeExtension<StockMutations>()
     .AddTypeExtension<IndexMutations>()
     .AddTypeExtension<IndicatorMutations>()
+    .AddTypeExtension<CorporateEventMutations>()
     .AddTypeExtension<UserMutations>()
     .AddAuthorization()
     .AddErrorFilter<DomainErrorFilter>()

@@ -32,6 +32,9 @@ using Financarias.Application.MarketData.Fuel.UseCases;
 using Financarias.Application.MarketData.Indexes.Commands;
 using Financarias.Application.MarketData.Indexes.Import;
 using Financarias.Application.MarketData.Indexes.UseCases;
+using Financarias.Application.MarketData.Indicators.Commands;
+using Financarias.Application.MarketData.Indicators.Import;
+using Financarias.Application.MarketData.Indicators.UseCases;
 using Financarias.Application.MarketData.Stocks.Commands;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.Import;
@@ -112,6 +115,11 @@ public static class DependencyInjection
         services
             .AddScoped<ICommandHandler<ImportIndexQuotesCommand, IndexQuoteImportResult>,
                 ImportIndexQuotesCommandHandler>();
+
+        services.AddScoped<IImportIndicatorValuesUseCase, ImportIndicatorValuesUseCase>();
+        services
+            .AddScoped<ICommandHandler<ImportIndicatorValuesCommand, IndicatorValueImportResult>,
+                ImportIndicatorValuesCommandHandler>();
 
         services.AddScoped<IFindEthanolGasolineParityUseCase, FindEthanolGasolineParityUseCase>();
         services

@@ -1,37 +1,47 @@
 using Financarias.Domain.MarketData.Indicators;
 using Financarias.Integrations.MarketData;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
-using Financarias.Integrations.MarketData.Bcb.Sgs.DTOs.Responses;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Providers;
-using Financarias.Integrations.MarketData.Fred;
-using Financarias.Integrations.MarketData.Fred.Clients;
-using Financarias.Integrations.MarketData.Fred.DTOs.Responses;
-using Financarias.Integrations.MarketData.Fred.Providers;
+using Financarias.Integrations.MarketData.Cboe.Clients;
+using Financarias.Integrations.MarketData.Cboe.Providers;
+using Financarias.Integrations.MarketData.Eia.Clients;
+using Financarias.Integrations.MarketData.Eia.Providers;
+using Financarias.Integrations.MarketData.Fed.Clients;
+using Financarias.Integrations.MarketData.Fed.Providers;
+using Financarias.Integrations.MarketData.WorldBank.Clients;
+using Financarias.Integrations.MarketData.WorldBank.Providers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace Financarias.Integrations.UnitTests.MarketData;
 
 public class IndicatorValueProviderRouterTests
 {
-    private readonly IBcbSgsClient _bcbClient = Substitute.For<IBcbSgsClient>();
-    private readonly IFredClient _fredClient = Substitute.For<IFredClient>();
+    private readonly IBcbSgsClient _bcb = Substitute.For<IBcbSgsClient>();
+    private readonly IEiaClient _eia = Substitute.For<IEiaClient>();
+    private readonly ICboeClient _cboe = Substitute.For<ICboeClient>();
+    private readonly IFedDataDownloadClient _fed = Substitute.For<IFedDataDownloadClient>();
+    private readonly IWorldBankPageClient _worldBankPage = Substitute.For<IWorldBankPageClient>();
+    private readonly IWorldBankDocsClient _worldBankDocs = Substitute.For<IWorldBankDocsClient>();
     private readonly IndicatorValueProviderRouter _router;
 
     public IndicatorValueProviderRouterTests()
     {
-        _bcbClient.GetSeriesAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns([]);
-        _fredClient.GetObservationsAsync(default!, default!, default!, default!, default)
-            .ReturnsForAnyArgs(new FredObservationsResponse());
+        _bcb.GetSeriesAsync(default, default!, default!, default).ReturnsForAnyArgs([]);
+        _eia.GetSpotPricesFileAsync(default!, default).ReturnsForAnyArgs(_ => Task.FromResult<Stream>(new MemoryStream([0])));
+        _cboe.GetVixHistoryAsync(default).ReturnsForAnyArgs("DATE,OPEN,HIGH,LOW,CLOSE\n");
+        _fed.GetSeriesAsync(default!, default!, default!, default).ReturnsForAnyArgs(string.Empty);
+        _worldBankPage.GetCommodityMarketsPageAsync(default).ReturnsForAnyArgs("<html></html>");
 
         _router = new IndicatorValueProviderRouter(
-            new BcbIndicatorValueProvider(_bcbClient, TimeProvider.System, NullLogger<BcbIndicatorValueProvider>.Instance),
-            new FredIndicatorValueProvider(_fredClient, Options.Create(new FredOptions { ApiKey = "test-key" }), NullLogger<FredIndicatorValueProvider>.Instance));
+            new BcbIndicatorValueProvider(_bcb, TimeProvider.System, NullLogger<BcbIndicatorValueProvider>.Instance),
+            new EiaIndicatorValueProvider(_eia, NullLogger<EiaIndicatorValueProvider>.Instance),
+            new CboeIndicatorValueProvider(_cboe, NullLogger<CboeIndicatorValueProvider>.Instance),
+            new FedDollarIndexValueProvider(_fed, NullLogger<FedDollarIndexValueProvider>.Instance),
+            new WorldBankIndicatorValueProvider(_worldBankPage, _worldBankDocs, NullLogger<WorldBankIndicatorValueProvider>.Instance));
     }
 
-    [Theory(DisplayName = "Indicadores do Banco Central vão para o SGS e não tocam o FRED")]
+    [Theory(DisplayName = "Indicadores do Banco Central vão para o SGS")]
     [InlineData(EconomicIndicator.Dollar)]
     [InlineData(EconomicIndicator.SelicTarget)]
     [InlineData(EconomicIndicator.Cdi)]
@@ -42,33 +52,61 @@ public class IndicatorValueProviderRouterTests
         await _router.GetYearAsync(indicator, 2026);
 
         // Assert
-        await _bcbClient.Received(1).GetSeriesAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _fredClient.DidNotReceiveWithAnyArgs().GetObservationsAsync(default!, default!, default!, default!, default);
+        await _bcb.ReceivedWithAnyArgs(1).GetSeriesAsync(default, default!, default!, default);
     }
 
-    [Theory(DisplayName = "Indicadores do mercado externo vão para o FRED e não tocam o SGS")]
-    [InlineData(EconomicIndicator.BrentOil)]
-    [InlineData(EconomicIndicator.WtiOil)]
-    [InlineData(EconomicIndicator.IronOre)]
-    [InlineData(EconomicIndicator.DollarIndex)]
-    [InlineData(EconomicIndicator.Vix)]
-    public async Task GetYear_RoutesExternalIndicatorsToFred(EconomicIndicator indicator)
+    [Theory(DisplayName = "Brent e WTI vão para a EIA")]
+    [InlineData(EconomicIndicator.BrentOil, "RBRTEd.xls")]
+    [InlineData(EconomicIndicator.WtiOil, "RWTCd.xls")]
+    public async Task GetYear_RoutesOilToEia(EconomicIndicator indicator, string file)
     {
-        // Act
-        await _router.GetYearAsync(indicator, 2026);
+        // Act: o conteúdo de teste não é uma planilha, então a leitura falha depois de a EIA ter sido chamada
+        await Assert.ThrowsAnyAsync<Exception>(() => _router.GetYearAsync(indicator, 2026));
 
         // Assert
-        await _fredClient.Received(1).GetObservationsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _bcbClient.DidNotReceiveWithAnyArgs().GetSeriesAsync(default, default!, default!, default);
+        await _eia.Received(1).GetSpotPricesFileAsync(file, Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Todo valor do enum tem uma rota: nenhum indicador cai num provedor que o recusa")]
-    public async Task GetYear_RoutesEveryIndicatorWithoutError()
+    [Fact(DisplayName = "O VIX vai para a Cboe")]
+    public async Task GetYear_RoutesVixToCboe()
+    {
+        // Act
+        await _router.GetYearAsync(EconomicIndicator.Vix, 2026);
+
+        // Assert
+        await _cboe.ReceivedWithAnyArgs(1).GetVixHistoryAsync(default);
+    }
+
+    [Fact(DisplayName = "O índice do dólar vai para o Federal Reserve")]
+    public async Task GetYear_RoutesDollarIndexToTheFed()
+    {
+        // Act
+        await _router.GetYearAsync(EconomicIndicator.DollarIndex, 2026);
+
+        // Assert
+        await _fed.ReceivedWithAnyArgs(1).GetSeriesAsync(default!, default!, default!, default);
+    }
+
+    [Fact(DisplayName = "O minério de ferro vai para o Banco Mundial")]
+    public async Task GetYear_RoutesIronOreToTheWorldBank()
+    {
+        // Act
+        await _router.GetYearAsync(EconomicIndicator.IronOre, 2026);
+
+        // Assert
+        await _worldBankPage.ReceivedWithAnyArgs(1).GetCommodityMarketsPageAsync(default);
+    }
+
+    [Fact(DisplayName = "Todo valor do enum tem uma rota: nenhum indicador fica sem provedor")]
+    public async Task GetYear_EveryIndicatorHasAProvider()
     {
         foreach (var indicator in Enum.GetValues<EconomicIndicator>())
         {
-            // Act & Assert
-            await _router.GetYearAsync(indicator, 2026);
+            // Act
+            var exception = await Record.ExceptionAsync(() => _router.GetYearAsync(indicator, 2026));
+
+            // Assert: pode falhar ao ler o arquivo de teste, mas nunca por falta de rota ou de provedor errado
+            Assert.IsNotType<ArgumentOutOfRangeException>(exception);
         }
     }
 }

@@ -27,9 +27,14 @@ using Financarias.Integrations.MarketData.B3.Indexes.Providers;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
 using Financarias.Integrations.MarketData;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Providers;
-using Financarias.Integrations.MarketData.Fred;
-using Financarias.Integrations.MarketData.Fred.Clients;
-using Financarias.Integrations.MarketData.Fred.Providers;
+using Financarias.Integrations.MarketData.Cboe.Clients;
+using Financarias.Integrations.MarketData.Cboe.Providers;
+using Financarias.Integrations.MarketData.Eia.Clients;
+using Financarias.Integrations.MarketData.Eia.Providers;
+using Financarias.Integrations.MarketData.Fed.Clients;
+using Financarias.Integrations.MarketData.Fed.Providers;
+using Financarias.Integrations.MarketData.WorldBank.Clients;
+using Financarias.Integrations.MarketData.WorldBank.Providers;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
@@ -186,20 +191,16 @@ public static class DependencyInjection
 
         services.AddScoped<BcbIndicatorValueProvider>();
 
-        var fredBaseUrl = configuration["Integrations:Fred:BaseUrl"]
-                          ?? throw new InvalidOperationException("Integrations:Fred:BaseUrl not configured.");
+        AddExternalIndicatorClient<IEiaClient>(services, configuration, "Integrations:Eia:BaseUrl");
+        AddExternalIndicatorClient<ICboeClient>(services, configuration, "Integrations:Cboe:BaseUrl");
+        AddExternalIndicatorClient<IFedDataDownloadClient>(services, configuration, "Integrations:Fed:BaseUrl");
+        AddExternalIndicatorClient<IWorldBankPageClient>(services, configuration, "Integrations:WorldBank:PageBaseUrl");
+        AddExternalIndicatorClient<IWorldBankDocsClient>(services, configuration, "Integrations:WorldBank:DocsBaseUrl");
 
-        services
-            .AddRefitClient<IFredClient>()
-            .ConfigureHttpClient(client =>
-            {
-                client.BaseAddress = new Uri(fredBaseUrl);
-                client.Timeout = TimeSpan.FromMinutes(1);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
-            });
-
-        services.Configure<FredOptions>(configuration.GetSection("Integrations:Fred"));
-        services.AddScoped<FredIndicatorValueProvider>();
+        services.AddScoped<EiaIndicatorValueProvider>();
+        services.AddScoped<CboeIndicatorValueProvider>();
+        services.AddScoped<FedDollarIndexValueProvider>();
+        services.AddScoped<WorldBankIndicatorValueProvider>();
         services.AddScoped<IIndicatorValueProvider, IndicatorValueProviderRouter>();
 
         var b3CompaniesBaseUrl = configuration["Integrations:B3Companies:BaseUrl"]
@@ -217,5 +218,24 @@ public static class DependencyInjection
         services.AddScoped<ICorporateEventProvider, B3CorporateEventProvider>();
 
         return services;
+    }
+
+    private static void AddExternalIndicatorClient<TClient>(
+        IServiceCollection services,
+        IConfiguration configuration,
+        string baseUrlKey)
+        where TClient : class
+    {
+        var baseUrl = configuration[baseUrlKey]
+                      ?? throw new InvalidOperationException($"{baseUrlKey} not configured.");
+
+        services
+            .AddRefitClient<TClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromMinutes(2);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
     }
 }

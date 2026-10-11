@@ -64,6 +64,9 @@ public sealed partial class CorporateEvent : BaseEntity<long>, IAggregateRoot
 
     public decimal? AmountPerShare => Amount / PerShares;
 
+    public static bool IsValidIssuerCode(string? issuerCode) =>
+        issuerCode is not null && IssuerCodePattern().IsMatch(issuerCode);
+
     public static bool IsCash(CorporateEventKind kind) =>
         kind is CorporateEventKind.CashDividend or CorporateEventKind.InterestOnEquity or CorporateEventKind.Yield;
 
@@ -89,7 +92,7 @@ public sealed partial class CorporateEvent : BaseEntity<long>, IAggregateRoot
         int? perShares,
         decimal? factor)
     {
-        if (!IssuerCodePattern().IsMatch(issuerCode ?? string.Empty))
+        if (!IsValidIssuerCode(issuerCode))
         {
             return $"issuer code must be 4 letters or digits, got '{issuerCode}'";
         }

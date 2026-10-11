@@ -38,6 +38,8 @@ public class FinancariasDbContext(DbContextOptions<FinancariasDbContext> options
 
     IQueryable<User> IApplicationDbContext.Users => Users;
 
+    IQueryable<DailyQuote> IApplicationDbContext.DailyQuotes => DailyQuotes;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

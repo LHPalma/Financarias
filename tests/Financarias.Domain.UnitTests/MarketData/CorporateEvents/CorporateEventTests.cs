@@ -110,6 +110,22 @@ public class CorporateEventTests
         Assert.Equal("corporate.event.invalid", exception.Code);
     }
 
+    [Theory(DisplayName = "IsValidIssuerCode aceita quatro letras ou dígitos em maiúsculas e recusa o resto")]
+    [InlineData("PETR", true)]
+    [InlineData("B3SA", true)]
+    [InlineData("AAPL", true)]
+    [InlineData("PET", false)]
+    [InlineData("PETRO", false)]
+    [InlineData("petr", false)]
+    [InlineData("PE R", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsValidIssuerCode_AcceptsOnlyFourCapitalLettersOrDigits(string? issuerCode, bool expected)
+    {
+        // Act & Assert
+        Assert.Equal(expected, CorporateEvent.IsValidIssuerCode(issuerCode));
+    }
+
     [Fact(DisplayName = "GetError devolve nulo para um evento válido, sem lançar")]
     public void GetError_ReturnsNull_ForValidEvent()
     {

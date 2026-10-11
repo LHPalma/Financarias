@@ -1,6 +1,7 @@
 ﻿using Financarias.Domain.Holidays.Models;
 using Financarias.Domain.Identity;
 using Financarias.Domain.MarketData.Fuel;
+using Financarias.Domain.MarketData.Stocks;
 
 namespace Financarias.Application.Common.Persistence;
 
@@ -17,4 +18,6 @@ public interface IApplicationDbContext
     IQueryable<FuelPrice> FuelPrices { get; }
 
     IQueryable<User> Users { get; }
+
+    IQueryable<DailyQuote> DailyQuotes { get; }
 }

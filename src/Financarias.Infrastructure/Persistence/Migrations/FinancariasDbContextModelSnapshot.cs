@@ -453,6 +453,83 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.Issuers.Issuer", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Activity")
+                        .HasColumnType("text")
+                        .HasColumnName("activity");
+
+                    b.Property<string>("Cnpj")
+                        .HasMaxLength(14)
+                        .HasColumnType("character varying(14)")
+                        .HasColumnName("cnpj");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("company_name");
+
+                    b.Property<string>("CvmCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("cvm_code");
+
+                    b.Property<string>("IssuerCode")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
+                        .HasColumnName("issuer_code");
+
+                    b.Property<string>("ListingMarket")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("listing_market");
+
+                    b.Property<string>("Sector")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("sector");
+
+                    b.Property<string>("Segment")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("segment");
+
+                    b.Property<string>("Subsector")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("subsector");
+
+                    b.Property<string>("TradingName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("trading_name");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("website");
+
+                    b.HasKey("Id")
+                        .HasName("pk_issuers");
+
+                    b.HasIndex("IssuerCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_issuers_issuer_code");
+
+                    b.ToTable("issuers", (string)null);
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Stocks.DailyQuote", b =>
                 {
                     b.Property<long>("Id")

@@ -269,6 +269,114 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.ToTable("fuel_stations", (string)null);
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.Stocks.DailyQuote", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("AveragePrice")
+                        .HasPrecision(13, 2)
+                        .HasColumnType("numeric(13,2)")
+                        .HasColumnName("average_price");
+
+                    b.Property<string>("BdiCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("bdi_code");
+
+                    b.Property<decimal>("ClosePrice")
+                        .HasPrecision(13, 2)
+                        .HasColumnType("numeric(13,2)")
+                        .HasColumnName("close_price");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("company_name");
+
+                    b.Property<decimal>("HighPrice")
+                        .HasPrecision(13, 2)
+                        .HasColumnType("numeric(13,2)")
+                        .HasColumnName("high_price");
+
+                    b.Property<string>("Isin")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("isin");
+
+                    b.Property<decimal>("LowPrice")
+                        .HasPrecision(13, 2)
+                        .HasColumnType("numeric(13,2)")
+                        .HasColumnName("low_price");
+
+                    b.Property<string>("MarketType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("market_type");
+
+                    b.Property<decimal>("OpenPrice")
+                        .HasPrecision(13, 2)
+                        .HasColumnType("numeric(13,2)")
+                        .HasColumnName("open_price");
+
+                    b.Property<long>("Quantity")
+                        .HasColumnType("bigint")
+                        .HasColumnName("quantity");
+
+                    b.Property<int>("QuoteFactor")
+                        .HasColumnType("integer")
+                        .HasColumnName("quote_factor");
+
+                    b.Property<string>("Specification")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("specification");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("ticker");
+
+                    b.Property<int>("Trades")
+                        .HasColumnType("integer")
+                        .HasColumnName("trades");
+
+                    b.Property<DateOnly>("TradingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("trading_date");
+
+                    b.Property<decimal>("Volume")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("volume");
+
+                    b.HasKey("Id")
+                        .HasName("pk_daily_quotes");
+
+                    b.HasIndex("Ticker", "TradingDate", "MarketType")
+                        .IsUnique()
+                        .HasDatabaseName("ix_daily_quotes_ticker_trading_date_market_type");
+
+                    b.ToTable("daily_quotes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_daily_quotes_counts_positive", "trades > 0 AND quantity > 0 AND quote_factor > 0");
+
+                            t.HasCheckConstraint("ck_daily_quotes_high_not_below_low", "high_price >= low_price");
+
+                            t.HasCheckConstraint("ck_daily_quotes_prices_positive", "open_price > 0 AND high_price > 0 AND low_price > 0 AND average_price > 0 AND close_price > 0");
+                        });
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Fuel.FuelPrice", b =>
                 {
                     b.HasOne("Financarias.Domain.MarketData.Fuel.FuelStation", "FuelStation")

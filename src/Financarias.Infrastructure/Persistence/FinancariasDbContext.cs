@@ -3,6 +3,7 @@ using Financarias.Application.Common.Persistence;
 using Financarias.Domain.Holidays.Models;
 using Financarias.Domain.Identity;
 using Financarias.Domain.MarketData.Fuel;
+using Financarias.Domain.MarketData.Stocks;
 using Microsoft.EntityFrameworkCore;
 
 namespace Financarias.Infrastructure.Persistence;
@@ -15,6 +16,8 @@ public class FinancariasDbContext(DbContextOptions<FinancariasDbContext> options
     public DbSet<FuelStation> FuelStations => Set<FuelStation>();
 
     public DbSet<FuelPrice> FuelPrices => Set<FuelPrice>();
+
+    public DbSet<DailyQuote> DailyQuotes => Set<DailyQuote>();
 
     public DbSet<User> Users => Set<User>();
 

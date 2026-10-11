@@ -4,6 +4,8 @@ namespace Financarias.Domain.MarketData.Indexes;
 
 public sealed class IndexQuote : BaseEntity<long>, IAggregateRoot
 {
+    public const int FirstYear = 1968;
+
     private IndexQuote()
     {
     }

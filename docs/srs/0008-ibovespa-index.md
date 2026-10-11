@@ -2,7 +2,7 @@
 
 - **Data:** 2026-10-11
 - **Feature:** `MarketData/Indexes` + `Integrations/MarketData/B3/Indexes`
-- **Status:** **parcial.** Entregue: o agregado `IndexQuote` e a tabela `index_quotes` (commits `106cec1` e `85c9361`). **Especificado, não implementado:** a importação a partir da B3 e a superfície GraphQL (§5 e §6).
+- **Status:** **entregue, exceto a consulta.** O agregado `IndexQuote`, a tabela `index_quotes`, a importação a partir da B3 e a mutation `importIndexQuotes` estão em `main` (§8). **Especificado, não implementado:** a query `indexQuotes` (RF-04, §6). Primeira carga: o Ibovespa de 2000 a 2026 (§11).
 - **Fonte externa:** endpoint de estatísticas por índice do site da B3 (`sistemaswebb3-listados.b3.com.br/indexStatisticsProxy`), sem chave. **Não é API documentada**: é o proxy que alimenta a página "Estatísticas históricas" de cada índice, o mesmo usado pelo pacote `rb3` (ropensci).
 - **Base empírica:** o endpoint foi conferido em **2026-10-11** contra o fechamento publicado pela imprensa (29/10/2018: 83.796,71 pontos) e contra a série 7 do Banco Central e o Yahoo `^BVSP` (diferença de 1 ponto, de arredondamento).
 
@@ -44,14 +44,25 @@ Domain/MarketData/Indexes
 ├── IndexQuoteSource            (enum: B3)
 └── IndexQuote                  (aggregate root — fechamento de um índice num pregão)
 
+Application/MarketData/Indexes
+├── Import/{IIndexQuoteProvider, IndexQuoteImportItem, IndexQuoteImportResult}
+├── Specifications/IndexQuotesByYearSpecification
+├── Commands/{ImportIndexQuotesCommand, ImportIndexQuotesCommandHandler}
+├── DTOs/Requests/ImportIndexQuotesRequest
+└── UseCases/{IImportIndexQuotesUseCase + impl}
+
 Infrastructure/Persistence
 ├── Configurations/IndexQuoteConfiguration
 └── Migrations/AddIndexQuotes
 
-Planejado (não implementado):
-Application/MarketData/Indexes   Import/{IIndexQuoteProvider, ...}, Commands, UseCases
-Integrations/MarketData/B3/Indexes   Client Refit + provider
-Api/GraphQL                      importIndexQuotes, indexQuotes
+Integrations/MarketData/B3/Indexes
+├── Clients/IB3IndexClient             (Refit, payload em base64 no caminho)
+├── DTOs/Responses/B3IndexStatisticsResponse
+└── Providers/B3IndexQuoteProvider
+
+Api/GraphQL/Mutations/IndexMutations   (importIndexQuotes)
+
+Planejado (não implementado): a query indexQuotes.
 ```
 
 ### 2.2 Por que a B3 e não outra fonte
@@ -72,8 +83,8 @@ A série 7 do Banco Central teria sido a escolha por ser oficial e estável, mas
 | ID | Requisito | Status |
 |---|---|---|
 | RF-01 | Persistir o fechamento de um índice em um pregão. | Entregue |
-| RF-02 | Importar da B3 todos os pregões de um ano para um índice, de forma idempotente. | Não implementado |
-| RF-03 | Expor a importação por mutation GraphQL. | Não implementado |
+| RF-02 | Importar da B3 todos os pregões de um ano para um índice, de forma idempotente. | Entregue |
+| RF-03 | Expor a importação por mutation GraphQL. | Entregue |
 | RF-04 | Consultar os fechamentos por índice e intervalo de datas. | Não implementado |
 
 ## 4. Regras de negócio
@@ -86,7 +97,7 @@ A série 7 do Banco Central teria sido a escolha por ser oficial e estável, mas
 - **RN-06 — Número em pt-BR.** O valor chega como texto (`"86.083,92"`); o ponto é separador de milhar e a vírgula é o decimal.
 - **RN-07 — Ano parcial.** O ano corrente vem até o último pregão. Importar de novo mais tarde completa o ano.
 
-## 5. Importação (especificada)
+## 5. Importação
 
 `GET https://sistemaswebb3-listados.b3.com.br/indexStatisticsProxy/IndexCall/GetPortfolioDay/{base64}`
 
@@ -97,12 +108,12 @@ O trecho `{base64}` é o JSON `{"language":"pt-br","index":"IBOV","year":"2018"}
 
 Um ano por chamada. O mapeamento do enum `MarketIndex` para o código da B3 (`Ibovespa` → `IBOV`) fica no provider, na camada anticorrupção.
 
-## 6. Superfície GraphQL (planejada)
+## 6. Superfície GraphQL
 
-- `importIndexQuotes(input: { index: IBOVESPA, year: 2018 })` devolve `fileFound`-equivalente, linhas lidas, criadas e atualizadas, como `importDailyQuotes`.
-- `indexQuotes`: leitura Estilo B (`IQueryable` com `where`/`order`), já que é uma lista de dados públicos moldada pelo cliente.
+- **Entregue:** `importIndexQuotes(input: { index: IBOVESPA, year: 2018 })` devolve `rowsRead`, `quotesCreated` e `quotesUpdated`. Não há `fileFound` como em `importDailyQuotes`: aqui um ano sem dados é uma lista vazia com HTTP 200 (a B3 devolve `results: null`), e vira zero linhas, sem erro. Erro de domínio: `index.year.invalid` para ano anterior a 1968. Hoje a mutation não exige autenticação, como `importDailyQuotes`.
+- **Planejado:** `indexQuotes`, leitura Estilo B (`IQueryable` com `where`/`order`), por ser uma lista de dados públicos moldada pelo cliente. Exige expor `IndexQuotes` em `IApplicationDbContext` e um `ObjectType` curado.
 
-Ambas seguem a regra do repositório de documentar o contrato em PT-BR no XML.
+O contrato é documentado em PT-BR no XML, como manda a regra do repositório; o teste funcional confere que as descrições chegam ao schema.
 
 ## 7. Riscos
 
@@ -116,17 +127,27 @@ Ambas seguem a regra do repositório de documentar o contrato em PT-BR no XML.
 |---|---|
 | RF-01, RN-02 (agregado, erro `index.quote.invalid`) | `106cec1` |
 | RF-01, RN-01, RN-02 (tabela, índice único, CHECK) | `85c9361` |
-| RF-02 a RF-04, RN-03 a RN-07 | pendente |
+| RF-02, RN-04, `index.year.invalid` (comando, handler, caso de uso, porta) | `449e55f` |
+| RF-02, RN-03, RN-05, RN-06 (provider da B3) | `08a28ec` |
+| RF-03 (mutation) | `661cfb4` |
+| RF-04, RN-07 | RN-07 vale desde `449e55f` (reimportar completa o ano); RF-04 pendente |
 
 ## 9. Cobertura de testes
 
 - `IndexQuoteTests` (domínio): criação, fechamento não positivo, atualização.
-- `DomainErrorCatalogTests`: inclui o código `index.quote.invalid`.
-- `IndexQuotePersistenceTests` (Postgres real, Testcontainers): ida e volta com duas casas, índice único, pregões distintos coexistem, `CHECK` barra fechamento zero.
+- `DomainErrorCatalogTests`: inclui `index.quote.invalid` e `index.year.invalid`.
+- `IndexQuotePersistenceTests` e `ImportIndexQuotesHandlerTests` (Postgres real, Testcontainers): ida e volta com duas casas, índice único, `CHECK`, upsert real (insere, atualiza e pula) e a specification que não toca em outros anos.
+- `ImportIndexQuotesCommandHandlerTests` e `ImportIndexQuotesUseCaseTests` (aplicação): criação, atualização, idêntico, ano vazio, ano anterior a 1968.
+- `B3IndexQuoteProviderTests` (integrações): matriz dia × mês em pt-BR, ordenação, descarte de dia impossível, valor não positivo e texto não numérico, ano sem dados, payload em base64 e propagação de falha de transporte.
+- `ImportIndexQuotesMutationTests` (funcional): contadores, idempotência, ano vazio, erro de domínio e documentação no schema.
 
 ## 10. Próximos passos
 
-1. Porta `IIndexQuoteProvider` e provider da B3 (parse do base64 e da matriz dia × mês), com linhas reais do ano de 2018 como fixture.
-2. `ImportIndexQuotesCommandHandler` por upsert, com a validação cruzada: o número de pregões do índice em um ano deve bater com os dias distintos de `daily_quotes` (em 2018, 245 e 245).
-3. Mutation `importIndexQuotes` e query `indexQuotes`.
-4. Importar 1994 até hoje e refazer os relatórios de evento com o índice real.
+1. Query `indexQuotes` (RF-04).
+2. Importar o Ibovespa de 1994 a 1999. O índice anterior a julho de 1994 está em moeda de outra época, e o retorno entre esses valores não é comparável.
+3. Teste de contrato externo semanal contra o endpoint da B3 (§7).
+4. Refazer os relatórios de evento com o índice real em vez do `BOVA11`.
+
+## 11. Primeira carga (2026-10-11)
+
+Importados os anos de 2000 a 2026 pela mutation: **6.638 pregões**, de 03/01/2000 a 09/10/2026. A validação cruzada prevista (o número de pregões do índice em um ano deve bater com os dias distintos de `daily_quotes` do mercado à vista) **fechou sem nenhuma diferença**: todos os 27 anos coincidem, e não há pregão de um lado sem o outro. Conferidos pontos de controle: 05/10/2018 = 82.321,52; 08/10/2018 = 86.083,92; 29/10/2018 = 83.796,71.

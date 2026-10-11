@@ -143,6 +143,82 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.CorporateEvents.CorporateEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(24, 10)
+                        .HasColumnType("numeric(24,10)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateOnly?>("ApprovalDate")
+                        .HasColumnType("date")
+                        .HasColumnName("approval_date");
+
+                    b.Property<DateOnly>("CumDate")
+                        .HasColumnType("date")
+                        .HasColumnName("cum_date");
+
+                    b.Property<decimal?>("Factor")
+                        .HasPrecision(24, 10)
+                        .HasColumnType("numeric(24,10)")
+                        .HasColumnName("factor");
+
+                    b.Property<string>("Isin")
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("isin");
+
+                    b.Property<string>("IssuerCode")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
+                        .HasColumnName("issuer_code");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("label");
+
+                    b.Property<DateOnly?>("PaymentDate")
+                        .HasColumnType("date")
+                        .HasColumnName("payment_date");
+
+                    b.Property<int?>("PerShares")
+                        .HasColumnType("integer")
+                        .HasColumnName("per_shares");
+
+                    b.Property<string>("ShareClass")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("share_class");
+
+                    b.HasKey("Id")
+                        .HasName("pk_corporate_events");
+
+                    b.HasIndex("IssuerCode", "CumDate")
+                        .HasDatabaseName("ix_corporate_events_issuer_code_cum_date");
+
+                    b.ToTable("corporate_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_corporate_events_fields_by_kind", "(kind IN ('CashDividend', 'InterestOnEquity', 'Yield') AND amount IS NOT NULL AND amount >= 0 AND per_shares IS NOT NULL AND per_shares > 0 AND factor IS NULL) OR (kind IN ('StockSplit', 'ReverseSplit', 'BonusShares') AND factor IS NOT NULL AND factor > 0 AND amount IS NULL AND per_shares IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Fuel.FuelPrice", b =>
                 {
                     b.Property<long>("Id")

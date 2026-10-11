@@ -29,7 +29,7 @@ public class B3CorporateEventProvider(
         var items = new List<CorporateEventImportItem>();
         var skipped = 0;
 
-        foreach (var name in tradingNames.Select(n => n.Trim()).Where(n => n.Length > 0).Distinct())
+        foreach (var name in tradingNames.Select(AskedName).Where(n => n.Length > 0).Distinct())
         {
             foreach (var record in await CashDividendsAsync(name, cancellationToken))
             {
@@ -115,6 +115,9 @@ public class B3CorporateEventProvider(
             return null;
         }
     }
+
+    private static string AskedName(string tradingName) =>
+        tradingName.Trim().Replace("S/A", "S.A.", StringComparison.Ordinal);
 
     private static string Payload(object body) =>
         Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(body)));

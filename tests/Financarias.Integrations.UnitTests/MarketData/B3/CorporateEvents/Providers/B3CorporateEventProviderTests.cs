@@ -94,7 +94,7 @@ public class B3CorporateEventProviderTests
                 var name = payload.GetProperty("tradingName").GetString();
                 var page = payload.GetProperty("pageNumber").GetInt32();
 
-                return name == "SADIA S/A"
+                return name == "AMBEV"
                     ? Page(1, 1, Cash("0,10", "10/01/2005"))
                     : page == 1
                         ? Page(1, 2, Cash("0,55", "25/04/2024"))
@@ -102,7 +102,7 @@ public class B3CorporateEventProviderTests
             });
 
         // Act
-        var fetch = await _provider.GetAsync("SDIA", ["SADIA S.A.", "SADIA S/A"]);
+        var fetch = await _provider.GetAsync("ABEV", ["AMBEV S/A", "AMBEV"]);
 
         // Assert
         Assert.Equal(3, fetch.Items.Count);
@@ -125,6 +125,21 @@ public class B3CorporateEventProviderTests
         Assert.Equal(
             """{"language":"pt-br","pageNumber":1,"pageSize":100,"tradingName":"PETROBRAS"}""",
             Encoding.UTF8.GetString(Convert.FromBase64String(payload!)));
+    }
+
+    [Fact(DisplayName = "Troca S/A por S.A. no nome de pregão, que a B3 não acha com a barra, e junta nomes que ficam iguais")]
+    public async Task Get_AsksForTheNameWithoutTheSlash()
+    {
+        // Arrange
+        var asked = new List<string>();
+        _client.GetCashDividendsAsync(Arg.Do<string>(sent => asked.Add(Decode(sent).GetProperty("tradingName").GetString()!)), Arg.Any<CancellationToken>())
+            .Returns(new B3CashDividendsResponse());
+
+        // Act
+        await _provider.GetAsync("ABEV", ["AMBEV S/A", "AMBEV S.A.", "AMBEV"]);
+
+        // Assert
+        Assert.Equal(["AMBEV S.A.", "AMBEV"], asked);
     }
 
     [Fact(DisplayName = "Pula e conta o provento de tipo desconhecido, valor negativo ou sem data-com")]

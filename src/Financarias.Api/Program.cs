@@ -64,6 +64,7 @@ builder.Services
     .AddTypeExtension<IndexMutations>()
     .AddTypeExtension<IndicatorMutations>()
     .AddTypeExtension<InflationMutations>()
+    .AddTypeExtension<IssuerMutations>()
     .AddTypeExtension<CorporateEventMutations>()
     .AddTypeExtension<UserMutations>()
     .AddAuthorization()

@@ -5,6 +5,7 @@ using Financarias.Application.MarketData.Cryptos.Gateways;
 using Financarias.Application.MarketData.ForeignExchange.Gateways;
 using Financarias.Application.MarketData.Fuel.Import;
 using Financarias.Application.MarketData.Indexes.Import;
+using Financarias.Application.MarketData.Indicators.Import;
 using Financarias.Application.MarketData.Stocks.Gateways;
 using Financarias.Application.MarketData.Stocks.Import;
 using Financarias.Application.News;
@@ -18,6 +19,8 @@ using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Providers;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.B3.Indexes.Providers;
+using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
+using Financarias.Integrations.MarketData.Bcb.Sgs.Providers;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
@@ -145,6 +148,20 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IIndexQuoteProvider, B3IndexQuoteProvider>();
+
+        var bcbBaseUrl = configuration["Integrations:Bcb:BaseUrl"]
+                         ?? throw new InvalidOperationException("Integrations:Bcb:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IBcbSgsClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(bcbBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(1);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<IIndicatorValueProvider, BcbIndicatorValueProvider>();
 
         return services;
     }

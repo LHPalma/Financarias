@@ -61,6 +61,7 @@ builder.Services
     .AddTypeExtension<HolidayMutations>()
     .AddTypeExtension<FuelMutations>()
     .AddTypeExtension<StockMutations>()
+    .AddTypeExtension<IndexMutations>()
     .AddTypeExtension<UserMutations>()
     .AddAuthorization()
     .AddErrorFilter<DomainErrorFilter>()

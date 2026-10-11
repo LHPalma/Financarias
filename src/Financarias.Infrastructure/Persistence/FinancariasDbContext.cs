@@ -4,6 +4,7 @@ using Financarias.Domain.Holidays.Models;
 using Financarias.Domain.Identity;
 using Financarias.Domain.MarketData.Fuel;
 using Financarias.Domain.MarketData.Indexes;
+using Financarias.Domain.MarketData.Indicators;
 using Financarias.Domain.MarketData.Stocks;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,8 @@ public class FinancariasDbContext(DbContextOptions<FinancariasDbContext> options
     public DbSet<DailyQuote> DailyQuotes => Set<DailyQuote>();
 
     public DbSet<IndexQuote> IndexQuotes => Set<IndexQuote>();
+
+    public DbSet<IndicatorValue> IndicatorValues => Set<IndicatorValue>();
 
     public DbSet<User> Users => Set<User>();
 

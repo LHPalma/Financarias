@@ -312,6 +312,40 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.Indicators.IndicatorValue", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Indicator")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("indicator");
+
+                    b.Property<DateOnly>("ReferenceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("reference_date");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_indicator_values");
+
+                    b.HasIndex("Indicator", "ReferenceDate")
+                        .IsUnique()
+                        .HasDatabaseName("ix_indicator_values_indicator_reference_date");
+
+                    b.ToTable("indicator_values", (string)null);
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Stocks.DailyQuote", b =>
                 {
                     b.Property<long>("Id")

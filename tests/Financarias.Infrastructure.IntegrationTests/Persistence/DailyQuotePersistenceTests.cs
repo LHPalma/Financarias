@@ -67,6 +67,27 @@ public class DailyQuotePersistenceTests : IAsyncLifetime
         Assert.Equal(100, loaded.QuoteFactor);
     }
 
+    [Fact(DisplayName = "Persiste o código antigo e permite buscar por ele; cotação moderna fica com nulo")]
+    public async Task SaveAndRead_RoundTripsLegacyTicker()
+    {
+        // Arrange
+        await using (var write = CreateContext())
+        {
+            write.DailyQuotes.Add(Quote("PETR4", legacyTicker: "PET 4"));
+            write.DailyQuotes.Add(Quote("VALE3"));
+            await write.SaveChangesAsync();
+        }
+
+        // Act
+        await using var read = CreateContext();
+        var byLegacy = await read.DailyQuotes.Where(q => q.LegacyTicker == "PET 4").ToListAsync();
+        var modern = await read.DailyQuotes.SingleAsync(q => q.Ticker == Ticker.Create("VALE3"));
+
+        // Assert
+        Assert.Equal("PETR4", Assert.Single(byLegacy).Ticker.Value);
+        Assert.Null(modern.LegacyTicker);
+    }
+
     [Fact(DisplayName = "Índice único barra cotação duplicada (papel + pregão + mercado)")]
     public async Task UniqueIndex_RejectsDuplicateQuote()
     {
@@ -169,7 +190,8 @@ public class DailyQuotePersistenceTests : IAsyncLifetime
         int trades = 52_310,
         long quantity = 41_250_300,
         decimal volume = 1_583_000_000.55m,
-        int quoteFactor = 1) =>
+        int quoteFactor = 1,
+        string? legacyTicker = null) =>
         DailyQuote.Create(
             Ticker.Create(ticker),
             tradingDate ?? TradingDate,
@@ -186,5 +208,6 @@ public class DailyQuotePersistenceTests : IAsyncLifetime
             trades,
             quantity,
             volume,
-            quoteFactor);
+            quoteFactor,
+            legacyTicker);
 }

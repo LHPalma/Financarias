@@ -14,6 +14,9 @@ public sealed class DailyQuoteConfiguration : IEntityTypeConfiguration<DailyQuot
             .HasMaxLength(12)
             .HasConversion<TickerConverter>();
 
+        builder.Property(q => q.LegacyTicker)
+            .HasMaxLength(12);
+
         builder.Property(q => q.MarketType)
             .IsRequired()
             .HasMaxLength(20)
@@ -44,6 +47,9 @@ public sealed class DailyQuoteConfiguration : IEntityTypeConfiguration<DailyQuot
 
         builder.HasIndex(q => new { q.Ticker, q.TradingDate, q.MarketType })
             .IsUnique();
+
+        builder.HasIndex(q => q.LegacyTicker)
+            .HasFilter("legacy_ticker IS NOT NULL");
 
         builder.ToTable(t =>
         {

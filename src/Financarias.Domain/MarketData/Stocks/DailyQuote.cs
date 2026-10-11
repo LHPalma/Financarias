@@ -24,13 +24,15 @@ public sealed class DailyQuote : BaseEntity<long>, IAggregateRoot
         int trades,
         long quantity,
         decimal volume,
-        int quoteFactor)
+        int quoteFactor,
+        string? legacyTicker)
     {
         ArgumentNullException.ThrowIfNull(ticker);
 
         EnsureValid(openPrice, highPrice, lowPrice, averagePrice, closePrice, trades, quantity, quoteFactor);
 
         Ticker = ticker;
+        LegacyTicker = legacyTicker;
         TradingDate = tradingDate;
         MarketType = marketType;
         BdiCode = bdiCode;
@@ -49,6 +51,8 @@ public sealed class DailyQuote : BaseEntity<long>, IAggregateRoot
     }
 
     public Ticker Ticker { get; private set; } = null!;
+
+    public string? LegacyTicker { get; private set; }
 
     public DateOnly TradingDate { get; private set; }
 
@@ -96,7 +100,8 @@ public sealed class DailyQuote : BaseEntity<long>, IAggregateRoot
         int trades,
         long quantity,
         decimal volume,
-        int quoteFactor) =>
+        int quoteFactor,
+        string? legacyTicker = null) =>
         new(
             ticker,
             tradingDate,
@@ -113,7 +118,8 @@ public sealed class DailyQuote : BaseEntity<long>, IAggregateRoot
             trades,
             quantity,
             volume,
-            quoteFactor);
+            quoteFactor,
+            legacyTicker);
 
     public void UpdateValues(
         decimal openPrice,

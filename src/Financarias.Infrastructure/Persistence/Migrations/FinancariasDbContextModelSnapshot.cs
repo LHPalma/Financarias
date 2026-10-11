@@ -311,6 +311,11 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(12)")
                         .HasColumnName("isin");
 
+                    b.Property<string>("LegacyTicker")
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("legacy_ticker");
+
                     b.Property<decimal>("LowPrice")
                         .HasPrecision(13, 2)
                         .HasColumnType("numeric(13,2)")
@@ -362,6 +367,10 @@ namespace Financarias.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_daily_quotes");
+
+                    b.HasIndex("LegacyTicker")
+                        .HasDatabaseName("ix_daily_quotes_legacy_ticker")
+                        .HasFilter("legacy_ticker IS NOT NULL");
 
                     b.HasIndex("Ticker", "TradingDate", "MarketType")
                         .IsUnique()

@@ -19,4 +19,5 @@ public sealed record DailyQuoteImportItem(
     int Trades,
     long Quantity,
     decimal Volume,
-    int QuoteFactor);
+    int QuoteFactor,
+    string? LegacyTicker = null);

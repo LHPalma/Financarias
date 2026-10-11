@@ -95,7 +95,8 @@ public class ImportDailyQuotesCommandHandler(
             item.Trades,
             item.Quantity,
             item.Volume,
-            item.QuoteFactor);
+            item.QuoteFactor,
+            item.LegacyTicker);
 
     private async Task<Counters> FlushAsync(
         IReadOnlyList<DailyQuoteImportItem> batch,

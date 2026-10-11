@@ -33,6 +33,20 @@ public class CotahistLineParserTests
     private const string Mrsa3bfLine =
         "012026100996MRSA3BF     020MRS LOGIST  ON      MB   R$  000000000415300000000042350000000004153000000000419400000000042350000000004006000000000423500004000000000000000010000000000000041940000000000000009999123100000010000000000000BRMRSAACNOR6127";
 
+    // Linhas reais do COTAHIST_A1995: códigos de três letras com espaço de preenchimento.
+    private const string LegacyPetr4Line =
+        "011995060102PET 4       010PETROBRAS   PN *         R$  000000000850000000000089000000000008450000000000868600000000089000000000008800000000000885000468000000000157050000000000001364252430000000000000009999123100010000000000000000BRPETRACNPR6134";
+
+    private const string LegacyBbas4Line =
+        "011995060102BB  4       010BRASIL      PN *         R$  000000000107000000000011000000000001065000000000107600000000010800000000001065000000000108000054000000000025590000000000000027544820000000000000009999123100010000000000000000BRBBASACNPR0156";
+
+    private const string LegacyAces3OldIsinLine =
+        "011995010202ACE 3       010ACESITA     ON *INT      R$  000000000630000000000063000000000006300000000000630000000000063000000000006300000000000650000001000000000000200000000000000001260000000000000000009999123100010000000000000000ACESACON    119";
+
+    // Linha real do COTAHIST_A2000: mercado fracionário com sufixo duplo.
+    private const string DoubleFractionalSuffixLine =
+        "012000010496PETR4FF     020PETROBRAS   PN *         R$  000000004690000000000469000000000044400000000004546000000000446400000000043000000000004420000062000000000000132176000000000006007875000000000000009999123100010000000000000000BRPETRACNPR6140";
+
     private const string OptionLine =
         "012026100978ABCBJ239    070ABCB        PN      N2000R$  000000000052000000000005200000000000520000000000052000000000005200000000000000000000000000000002000000000000003300000000000001716000000000000239002026101600000010000000000000BRABCBACNPR4151";
 
@@ -144,6 +158,79 @@ public class CotahistLineParserTests
         Assert.Equal("ALUP3F", item!.Ticker.Value);
         Assert.Equal(QuoteMarketType.Fractional, item.MarketType);
         Assert.Equal("96", item.BdiCode);
+    }
+
+    [Fact(DisplayName = "TryParse converte código antigo de três letras (PET 4) pela raiz do ISIN e guarda o original")]
+    public void TryParse_DerivesTickerFromIsinRoot_ForLegacyCode()
+    {
+        // Act
+        var result = CotahistLineParser.TryParse(LegacyPetr4Line, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Parsed, result);
+        Assert.Equal("PETR4", item!.Ticker.Value);
+        Assert.Equal("PET 4", item.LegacyTicker);
+    }
+
+    [Fact(DisplayName = "TryParse converte código antigo de duas letras com preenchimento duplo (BB  4)")]
+    public void TryParse_DerivesTickerFromIsinRoot_ForTwoLetterLegacyCode()
+    {
+        // Act
+        var result = CotahistLineParser.TryParse(LegacyBbas4Line, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Parsed, result);
+        Assert.Equal("BBAS4", item!.Ticker.Value);
+        Assert.Equal("BB  4", item.LegacyTicker);
+    }
+
+    [Fact(DisplayName = "TryParse deriva a raiz das quatro primeiras posições quando o campo do ISIN tem o código antigo da empresa")]
+    public void TryParse_DerivesTickerFromCompanyCode_WhenIsinFieldHasNoBrPrefix()
+    {
+        // Act
+        var result = CotahistLineParser.TryParse(LegacyAces3OldIsinLine, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Parsed, result);
+        Assert.Equal("ACES3", item!.Ticker.Value);
+        Assert.Equal("ACE 3", item.LegacyTicker);
+    }
+
+    [Fact(DisplayName = "TryParse reduz o sufixo duplo do fracionário (PETR4FF) a PETR4F e guarda o original")]
+    public void TryParse_CollapsesDoubleFractionalSuffix()
+    {
+        // Act
+        var result = CotahistLineParser.TryParse(DoubleFractionalSuffixLine, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Parsed, result);
+        Assert.Equal("PETR4F", item!.Ticker.Value);
+        Assert.Equal("PETR4FF", item.LegacyTicker);
+        Assert.Equal(QuoteMarketType.Fractional, item.MarketType);
+    }
+
+    [Fact(DisplayName = "TryParse pula o código antigo quando o campo do ISIN não permite derivar a raiz")]
+    public void TryParse_ReturnsSkipped_WhenLegacyCodeHasNoUsableIsin()
+    {
+        // Arrange
+        var line = Replace(LegacyPetr4Line, 231, "            ");
+
+        // Act
+        var result = CotahistLineParser.TryParse(line, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Skipped, result);
+        Assert.Null(item);
+    }
+
+    [Fact(DisplayName = "TryParse deixa o código antigo vazio para ticker moderno")]
+    public void TryParse_LeavesLegacyTickerNull_ForModernCode()
+    {
+        // Act
+        CotahistLineParser.TryParse(Petr4Line, out var item);
+
+        // Assert
+        Assert.Null(item!.LegacyTicker);
     }
 
     [Fact(DisplayName = "TryParse preserva o fator de cotação 1000 do arquivo")]

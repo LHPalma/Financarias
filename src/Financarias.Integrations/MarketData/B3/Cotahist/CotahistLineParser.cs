@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Financarias.Application.MarketData.Stocks.Import;
 using Financarias.Domain.MarketData;
@@ -37,7 +38,7 @@ public static class CotahistLineParser
         }
 
         if (!DateOnly.TryParseExact(Field(line, 3, 10), "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var tradingDate)
-            || !Ticker.TryCreate(Field(line, 13, 24).Trim().ToString(), out var ticker)
+            || !TryResolveTicker(line, out var ticker, out var legacyTicker)
             || !TryParseMoney(Field(line, 57, 69), out var openPrice)
             || !TryParseMoney(Field(line, 70, 82), out var highPrice)
             || !TryParseMoney(Field(line, 83, 95), out var lowPrice)
@@ -72,9 +73,47 @@ public static class CotahistLineParser
             trades,
             quantity,
             volume,
-            quoteFactor);
+            quoteFactor,
+            legacyTicker);
 
         return CotahistLineResult.Parsed;
+    }
+
+    private static bool TryResolveTicker(string line, [NotNullWhen(true)] out Ticker? ticker, out string? legacyTicker)
+    {
+        legacyTicker = null;
+        var code = Field(line, 13, 24).Trim().ToString();
+
+        if (Ticker.TryCreate(code, out ticker))
+        {
+            return true;
+        }
+
+        if (code.EndsWith("FF", StringComparison.Ordinal) && Ticker.TryCreate(code[..^1], out ticker))
+        {
+            legacyTicker = code;
+            return true;
+        }
+
+        var parts = code.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2
+            || parts[0].Length is < 2 or > 3
+            || !parts[0].All(char.IsAsciiLetterUpper)
+            || !parts[1].All(char.IsAsciiDigit))
+        {
+            return false;
+        }
+
+        var isin = Field(line, 231, 242);
+        var root = isin.StartsWith("BR", StringComparison.Ordinal) ? isin.Slice(2, 4) : isin[..4];
+
+        if (!Ticker.TryCreate(string.Concat(root, parts[1].AsSpan()), out ticker))
+        {
+            return false;
+        }
+
+        legacyTicker = code;
+        return true;
     }
 
     private static ReadOnlySpan<char> Field(string line, int firstPosition, int lastPosition) =>

@@ -422,6 +422,37 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.ToTable("indicator_values", (string)null);
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.Inflation.InflationLevel", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<decimal>("Level")
+                        .HasPrecision(38, 16)
+                        .HasColumnType("numeric(38,16)")
+                        .HasColumnName("level");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inflation_levels");
+
+                    b.HasIndex("Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_inflation_levels_day");
+
+                    b.ToTable("inflation_levels", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_inflation_levels_level_positive", "level > 0");
+                        });
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Stocks.DailyQuote", b =>
                 {
                     b.Property<long>("Id")

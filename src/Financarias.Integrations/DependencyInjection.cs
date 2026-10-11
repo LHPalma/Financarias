@@ -22,7 +22,10 @@ using Financarias.Integrations.MarketData.B3.CorporateEvents.Clients;
 using Financarias.Integrations.MarketData.B3.CorporateEvents.Providers;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Providers;
+using Financarias.Application.MarketData.Issuers.Import;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
+using Financarias.Integrations.MarketData.B3.Issuers.Clients;
+using Financarias.Integrations.MarketData.B3.Issuers.Providers;
 using Financarias.Integrations.MarketData.B3.Indexes.Providers;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
 using Financarias.Integrations.MarketData;
@@ -216,6 +219,17 @@ public static class DependencyInjection
             });
 
         services.AddScoped<ICorporateEventProvider, B3CorporateEventProvider>();
+
+        services
+            .AddRefitClient<IB3IssuerClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(b3CompaniesBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(1);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<IIssuerProvider, B3IssuerProvider>();
 
         return services;
     }

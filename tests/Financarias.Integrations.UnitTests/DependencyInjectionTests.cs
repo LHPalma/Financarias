@@ -5,6 +5,7 @@ using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
 using Financarias.Integrations.MarketData.B3.CorporateEvents.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
+using Financarias.Integrations.MarketData.B3.Issuers.Clients;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
 using Financarias.Integrations.MarketData.Cboe.Clients;
 using Financarias.Integrations.MarketData.Eia.Clients;
@@ -39,6 +40,7 @@ public class DependencyInjectionTests
         typeof(IWorldBankPageClient),
         typeof(IWorldBankDocsClient),
         typeof(IB3CompanyClient),
+        typeof(IB3IssuerClient),
         typeof(IBrasilApiClient)
     ];
 

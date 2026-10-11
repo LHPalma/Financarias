@@ -2,7 +2,7 @@
 
 - **Data:** 2026-10-10
 - **Feature:** `MarketData/Stocks` (histórico) + `Integrations/MarketData/B3/Cotahist`
-- **Status:** **especificado, não implementado.** O único item entregue é o ajuste do regex do `Ticker` (RN-09, commit `613863a`). Todo o resto é desenho a validar na implementação.
+- **Status:** **entregue, exceto a consulta.** O import inteiro (domínio, parser, provider, handler, persistência, caso de uso e a mutation `importDailyQuotes`) está em `main` (§8) e já carregou de julho de 1994 a outubro de 2026 (§11). Falta a query de leitura `dailyQuotes` (RF-08). **Revisado em 2026-10-11** para refletir o que foi construído: onde este texto diverge da especificação original, vale o que está aqui, e as mudanças mais relevantes são a porta em dois passos (RF-02/03), o `@oneOf` no input (§6), a conversão de códigos antigos (RN-15 a RN-18) e a colisão de chave do `BIOM12F` (RN-02).
 - **Fonte externa:** [B3 — Cotações históricas](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/) (arquivo `COTAHIST_*.ZIP`, sem chave) e o [layout oficial](https://www.b3.com.br/data/files/33/67/B9/50/D84057102C784E47AC094EA8/SeriesHistoricas_Layout.pdf) (revisão de 2020).
 - **Base empírica:** o layout abaixo foi conferido em **2026-10-10** contra o arquivo real `COTAHIST_D09102026.ZIP` (19.213 registros `01`, 1.847 deles de mercado à vista). Onde o arquivo diverge do PDF, vale o arquivo (ver §7.3).
 
@@ -19,7 +19,7 @@ Especificar a **ingestão da série histórica de cotações da B3**: baixar o `
 - Download de arquivo **anual**, **mensal** ou **diário** (o chamador escolhe o período).
 - Parse em streaming do arquivo de largura fixa (245 caracteres por linha).
 - Persistência com **upsert idempotente** de uma linha por (papel, pregão, tipo de mercado).
-- Disparo manual via mutation GraphQL `importDailyQuotes` e leitura via query `dailyQuotes`.
+- Disparo manual via mutation GraphQL `importDailyQuotes` (entregue). A leitura via query `dailyQuotes` **não existe ainda**: hoje os dados se leem direto no banco.
 - **Só mercado à vista:** `TPMERC` 010 (vista) e 020 (fracionário).
 
 **Fora de escopo (hoje):**
@@ -56,25 +56,28 @@ Domain
         └── QuoteMarketType             (enum: Cash, Fractional)
 
 Application/MarketData/Stocks
-├── Import/{IDailyQuoteProvider, DailyQuoteImportItem, DailyQuoteImportResult}
+├── Import/{IDailyQuoteProvider, IDailyQuoteFile, DailyQuoteImportItem, DailyQuoteImportResult}
 ├── Specifications/QuotesByTickersAndDatesSpecification
 ├── Commands/{ImportDailyQuotesCommand, ImportDailyQuotesCommandHandler}
+├── DTOs/Requests/{ImportDailyQuotesRequest, QuoteMonthRequest}
 ├── UseCases/{IImportDailyQuotesUseCase + impl}
-└── Queries/{IStockReads, StockReads}   (leitura Style B; só quando a query chegar)
+└── Queries/{IStockReads, StockReads}   (NÃO implementado: leitura Style B, quando a query chegar)
 
 Infrastructure/Persistence
 ├── Configurations/DailyQuoteConfiguration
-└── Migrations/AddDailyQuotes
+├── Converters/TickerConverter
+└── Migrations/{AddDailyQuotes, AddLegacyTickerToDailyQuotes}
 
 Integrations/MarketData/B3/Cotahist
 ├── Clients/IB3CotahistClient          (Refit, devolve Stream)
-├── CotahistLineParser                 (puro: string de 245 chars → item ou miss)
-└── Providers/B3CotahistProvider       (implementa IDailyQuoteProvider)
+├── CotahistLineParser + CotahistLineResult   (puro: string de 245 chars → item, miss ou fora de escopo)
+└── Providers/{B3CotahistProvider, CotahistFile}   (provider abre o ZIP; CotahistFile lê em streaming)
 
 Api/GraphQL
 ├── Mutations/StockMutations           (importDailyQuotes)
-├── Queries/StockQueries               (dailyQuotes — junto da stockQuote existente)
-└── Types/DailyQuoteType
+└── Types/ImportDailyQuotesInputType   (@oneOf do período)
+
+NÃO implementado: Queries/StockQueries (dailyQuotes) e Types/DailyQuoteType.
 ```
 
 ### 2.2 Fluxo (escrita — resolver → UseCase → CommandHandler)
@@ -91,7 +94,7 @@ O chamador informa um **dia**, um **mês** ou um **ano**. Cada forma mapeia para
 Obter o ZIP da B3. Se o arquivo **não existe (404)**, o import termina sem erro e sem linhas (RN-06).
 
 ### RF-03 — Transmitir as linhas parseadas em streaming
-O provider expõe `IAsyncEnumerable<DailyQuoteImportItem>`, item a item, sem materializar o arquivo.
+A porta é **em dois passos**, e não um simples `IAsyncEnumerable`: `IDailyQuoteProvider.OpenAsync(período)` devolve um `IDailyQuoteFile?` (nulo quando o arquivo não existe), que é `IAsyncDisposable` e expõe `ReadAsync()`, um `IAsyncEnumerable<DailyQuoteImportItem>` item a item, mais `RowsSkipped`, que só fica completo depois de percorrer o arquivo. Os dois passos existem porque o arquivo temporário do ZIP precisa ser apagado ao fim (RNF-01) e o contador de linhas puladas só se sabe no fim da leitura.
 
 ### RF-04 — Traduzir o registro `01` para o modelo de domínio
 Mapear os campos posicionais para `Ticker`, `DateOnly`, `QuoteMarketType`, `decimal`, `int` e `long`.
@@ -103,10 +106,10 @@ Chave `(ticker, data do pregão, tipo de mercado)`: insere novas, atualiza as qu
 Devolver o que foi lido, criado, atualizado e pulado, e se o arquivo existia.
 
 ### RF-07 — Disparo manual via GraphQL
-Mutation `importDailyQuotes`.
+Mutation `importDailyQuotes`. **Entregue.**
 
 ### RF-08 — Consultar o histórico
-Query `dailyQuotes` com filtro, ordenação e paginação (por ticker e por intervalo de datas, no mínimo).
+Query `dailyQuotes` com filtro, ordenação e paginação (por ticker e por intervalo de datas, no mínimo). **Não implementado.**
 
 ---
 
@@ -115,19 +118,23 @@ Query `dailyQuotes` com filtro, ordenação e paginação (por ticker e por inte
 | ID | Regra |
 |---|---|
 | **RN-01** | **Um agregado, uma linha por papel-mercado-pregão.** `DailyQuote` é raiz de agregado sem filhos. O ticker é uma `string`/VO, não há entidade de papel: só o dado que o arquivo traz. |
-| **RN-02** | **Chave natural `(ticker, data do pregão, tipo de mercado)`**, garantida por índice único. Verificado em 2026-10-10: nenhuma duplicata nas 1.847 linhas à vista; incluir o `CODBDI` na chave também não gerou duplicata. Fica de fora porque o BDI classifica, não identifica. |
+| **RN-02** | **Chave natural `(ticker, data do pregão, tipo de mercado)`**, garantida por índice único. Na amostra de um único dia (2026-10-10) não havia duplicata nas 1.847 linhas à vista, e incluir o `CODBDI` na chave também não gerava. **Numa amostra maior isso deixou de valer:** em novembro de 2022 (33.339 linhas à vista e fracionárias) apareceram **5 chaves repetidas**, todas as inspecionadas do `BIOM12F` no fracionário, onde duas espécies diferentes (`BNS ORD MA`, ISIN `BRBIOMN03OR2`, e `ON  REC MA`, ISIN `BRBIOMR12OR4`) negociam sob o mesmo código. O import trata a segunda como atualização da primeira (RN-12), então **uma das duas linhas se perde**. **Decisão em aberto:** incluir o ISIN na chave, o que separaria as espécies, ao custo de um índice maior e de mudar a chave única. Enquanto não se decide, o efeito é raro (poucas linhas por mês, fracionário) e conhecido. O `CODBDI` continua fora da chave: classifica, não identifica. |
 | **RN-03** | **O ISIN (`CODISI`) é guardado**, mas não há FK nem entidade de instrumento. Todas as linhas à vista da amostra trazem ISIN começando com `BR`. É o gancho para ligar ao emissor quando esse modelo existir. |
 | **RN-04** | **Filtro por `TPMERC`, não por `CODBDI`.** Só 010 e 020 entram. Filtrar por BDI quebraria: a amostra tem 11 BDIs diferentes no mercado à vista, e o PDF não documenta 4 deles (13, 34, 35 e 36). Opções, termo e demais mercados ficam como extensão: acrescentar valores a `QuoteMarketType` e liberar o filtro. |
 | **RN-05** | **`CODBDI` é guardado como texto de 2 caracteres**, sem enum. A tabela do PDF está defasada em relação ao arquivo (RN-10). |
 | **RN-06** | **Miss ≠ falha.** Linha com tamanho diferente de 245, tipo de registro desconhecido, ticker que não casa com `Ticker`, data ilegível, número ilegível, moeda diferente de `R$` ou violação da RN-07 é **pulada**, contada em `rowsSkipped` e logada. Falha de transporte (rede, 5xx, ZIP corrompido) **propaga**. **404 é caso esperado:** fim de semana, feriado e data futura não têm arquivo diário (verificado: `D10102026`, `D12102026`, `D07092026` e `D12102025` respondem 404). |
-| **RN-07** | **Invariantes do agregado:** abertura, máxima, mínima, média e fechamento **> 0**; máxima ≥ mínima; negócios > 0; quantidade > 0. Valem no `Create`/`UpdateValues` **e** como `CHECK` no banco, para sobreviverem a caminhos que contornem o agregado. Nenhuma linha à vista da amostra viola isso. **Não há invariante sobre a média:** em 1 linha de 1.847 o `PREMED` caiu fora do intervalo [mínima, máxima]. |
+| **RN-07** | **Invariantes do agregado:** abertura, máxima, mínima, média e fechamento **> 0**; máxima ≥ mínima; negócios > 0; quantidade > 0. Valem no `Create`/`UpdateValues` **e** como `CHECK` no banco, para sobreviverem a caminhos que contornem o agregado. O agregado expõe `DailyQuote.GetFiguresError`, que o parser usa para pular a linha como miss sem lançar exceção; o `Create` lança `stock.quote.invalid` pelo mesmo caminho. Nenhuma linha à vista da amostra viola isso. **Não há invariante sobre a média:** em 1 linha de 1.847 o `PREMED` caiu fora do intervalo [mínima, máxima]. |
 | **RN-08** | **Preço é gravado como publicado, com o fator de cotação ao lado.** O `FATCOT` diz se o preço vale por ação (`1`) ou por lote (`100`, `1000`). Na amostra: 1.844 linhas com `1`, 2 com `1000` e 1 com `100`. Guardar o dado cru preserva a fidelidade à fonte; quem consome divide pelo fator. Os preços **não têm ajuste** por desdobramento, grupamento ou proventos (a própria B3 avisa), então uma série longa tem saltos nessas datas. É limitação conhecida, não bug. |
 | **RN-09** | **O VO `Ticker` aceita dígito na raiz** (`^[A-Z][A-Z0-9]{3}\d{1,2}F?$`). O regex antigo, de 4 letras, rejeitava 15% do mercado à vista (279 de 1.847): `B3SA3`, BDRs (`V1IP34`, `BPIC39`) e ETFs (`B1003`). Com o novo, só `MRSA3BF` fica de fora (fracionário com sufixo de classe) e vira miss. A mudança vale também para `stockQuote` (Brapi). **Entregue** em `613863a`. |
 | **RN-10** | **O arquivo é a fonte de verdade, não o PDF.** Divergências verificadas estão em §7.3. O parser não depende da tabela de BDI nem do conjunto de fatores de cotação do PDF. |
 | **RN-11** | **Import é idempotente.** Reexecutar é seguro e é o mecanismo de recuperação. Reimportar o ano corrente (que a B3 reconstrói todo dia) atualiza só o que mudou. |
 | **RN-12** | **Read-before-write via repositório**, nunca pelo contrato de leitura (mesma regra do import da ANP). O handler carrega os agregados existentes por `IRepository<DailyQuote>` + `Specification` e muda pelos métodos do agregado. |
-| **RN-13** | **O trailer é conferência, não bloqueio.** Divergência entre o total do trailer e o número de registros `01` lidos gera log de aviso, e o import segue. Ver §7.3 sobre o que o trailer conta de fato. |
-| **RN-14** | **Período inválido é erro de domínio.** Combinação que não é dia, mês ou ano (mês sem ano, mês fora de 1–12, ano antes de 1986 ou depois do atual, data futura) lança `stock.quoteperiod.invalid`. A validação fica no use case, antes de qualquer download. |
+| **RN-13** | **O trailer é conferência, não bloqueio.** Divergência entre o total do trailer e o número de registros `01` lidos gera log de aviso, e o import segue. Ver §7.3 sobre o que o trailer conta de fato. Na carga histórica os anos de 1998 e 2000 avisaram divergência de **2 registros** (104.973 declarados contra 104.971 lidos, e 153.684 contra 153.682); não foi investigada, e o import seguiu como previsto. |
+| **RN-14** | **Período inválido é erro de domínio.** Lança `stock.quoteperiod.invalid` o pedido que não é exatamente um dia, um mês ou um ano (nenhum campo, ou mais de um), o mês fora de 1–12 e o ano ou a data **anteriores a 1986**. A validação fica em `QuotePeriod` e no use case, antes de qualquer download. **Não há limite superior:** data futura ou ano futuro passam e terminam em `fileFound: false`, porque a B3 responde 404 (RN-06). (A versão original deste documento prometia recusar o futuro; não foi construído, e o 404 já dá o mesmo resultado sem erro.) |
+| **RN-15** | **Só entra linha em reais (`R$`).** Os arquivos anteriores a 01/07/1994 trazem cruzeiro e outras moedas da época; o parser pula todas (no arquivo de 1994, 57.108 linhas puladas de antes de julho). Por isso o banco começa em **julho de 1994**, e os anuais de 1986 a 1993, que existem na B3, não foram importados. |
+| **RN-16** | **Códigos antigos são convertidos para o ticker atual.** Até 1997 os códigos tinham três letras e um espaço de preenchimento (`PET 4`, `BBD 4`, `ITA 4`, `BB  4`). O parser reconstrói o ticker pela **raiz do ISIN** (posições 3–6, depois do `BR`) mais o dígito da classe: `PET 4` → `PETR4`. Em 1995 as duas formas convivem no mesmo arquivo: de janeiro a abril o campo do ISIN traz o código antigo da empresa (`ACESACON`) em vez do ISIN, e a raiz são as **quatro primeiras posições**. Em 1995, 79% das linhas derivam para um ticker que existe em 1999–2001; o resto são empresas que já tinham saído, e o código derivado continua com formato válido. **Limite conhecido:** quando a classe mudou de número, o derivado não existe depois (`VAL 4` → `VALE4`, que na série moderna é `VALE5`). Uma tabela de exceções não foi construída. |
+| **RN-17** | **O código original é guardado em `legacy_ticker`.** Coluna `varchar(12)` nula, preenchida só quando o parser converteu (RN-16 e RN-18), com índice parcial `WHERE legacy_ticker IS NOT NULL`. Serve para pesquisar uma cotação pelo nome com que ela era negociada. Fica nula para todo código moderno. |
+| **RN-18** | **Sufixo duplo do fracionário é reduzido.** Em 2000 o mercado fracionário traz `PETR4FF`, com dois `F`; o `Ticker` aceita só um. O parser reduz para `PETR4F` e guarda o original em `legacy_ticker`. Eram 47.076 linhas de 2000, puladas até esta regra existir. |
 
 ---
 
@@ -138,28 +145,33 @@ Query `dailyQuotes` com filtro, ordenação e paginação (por ticker e por inte
 - **RNF-03 (Anti-corrupção):** o parser lê por **posição** e traduz para tipos de domínio; o vocabulário da B3 (`TPMERC`, `CODBDI`) não vaza para além do provider e do enum curado.
 - **RNF-04 (Formato do dado):** largura fixa, 245 caracteres por linha, terminador CRLF, **sem separador**. Preços são inteiros com 2 casas implícitas (`/ 100`), volume idem. Datas em `AAAAMMDD`. Codificação ANSI do Windows: ler como **Latin1**; as diferenças para a Windows-1252 estão só em 0x80–0x9F e não tocam ticker, número ou data.
 - **RNF-05 (Configuração):** `Integrations:B3:BaseUrl` (padrão `https://bvmf.bmfbovespa.com.br`) no appsettings da API e dos testes, como a ANP. O `AddIntegrations` valida a configuração de todas as integrações no boot.
-- **RNF-06 (Timeouts):** `HttpClient` da B3 com timeout alto (o anual tem 91 MB) e `ExecutionTimeout` do Hot Chocolate acima do tempo do import anual (ver risco em §10).
+- **RNF-06 (Timeouts):** `HttpClient` da B3 com timeout de 10 minutos (o anual recente tem ~90 MB). Os imports anuais de até ~414 mil linhas terminaram pela própria mutation, sem estourar o `ExecutionTimeout` do Hot Chocolate; o limite não foi levado ao extremo.
 - **RNF-07 (Testabilidade):** o `CotahistLineParser` é função pura, testada com **linhas literais copiadas do arquivo real**; o provider, com client substituído e ZIP montado em memória; o handler, sem banco (portas substituídas) e **com** banco real (Testcontainers).
-- **RNF-08 (Tamanho esperado):** ≈ 1,9 mil linhas à vista por pregão, ≈ 480 mil por ano (estimativa: 250 pregões × a amostra). Os arquivos de 1986 em diante estão disponíveis (`A1986` responde 200, 8,7 MB).
+- **RNF-08 (Tamanho medido):** de 90 a 110 mil linhas à vista por ano nos anos 1990 e até 2006, e de 156 mil (2010) a 435 mil (2025) depois, contra a estimativa original de ≈ 480 mil por ano. Os arquivos anuais de 1986 em diante existem (`A1986` responde 200, 8,7 MB), mas só os de julho de 1994 em diante têm linhas em reais (RN-15).
+- **RNF-09 (Velocidade de escrita):** medida em ≈ 1 ms por linha, pelo EF linha a linha: um mês (≈ 25 mil linhas) leva em torno de 25 s, e o anual de 2008 (165.527 linhas) levou 153 s. O ano recente de 400 mil linhas leva alguns minutos. É a faixa esperada no risco de §10.
 
 ---
 
-## 6. Interface — GraphQL (proposta)
+## 6. Interface — GraphQL
+
+**Entregue** (`StockMutations` e `ImportDailyQuotesInputType`):
 
 ```graphql
 type Mutation {
-  "Importa cotações do COTAHIST da B3. Público e pesado: qualquer um pode chamar hoje."
-  importDailyQuotes(input: ImportDailyQuotesInput!): DailyQuoteImportResult!
+  "Importa as cotações diárias da B3 (série histórica COTAHIST) de um dia, de um mês ou de um ano. Público e pesado: qualquer um pode chamar hoje."
+  importDailyQuotes(input: ImportDailyQuotesRequestInput!): DailyQuoteImportResult!
 }
 
-input ImportDailyQuotesInput {
-  "Pregão específico. Não combina com year/month."
-  date: Date
-  "Ano inteiro, ou o ano do mês quando month é informado."
+input ImportDailyQuotesRequestInput @oneOf {
+  "Um pregão específico, como 2026-10-09."
+  day: Date
+  "Um mês inteiro."
+  month: QuoteMonthRequestInput
+  "Um ano inteiro, a partir de 1986."
   year: Int
-  "Mês (1–12). Exige year."
-  month: Int
 }
+
+input QuoteMonthRequestInput { year: Int!, month: Int! }
 
 type DailyQuoteImportResult {
   fileFound: Boolean!
@@ -168,15 +180,13 @@ type DailyQuoteImportResult {
   quotesCreated: Int!
   quotesUpdated: Int!
 }
-
-type Query {
-  dailyQuotes(...): DailyQuoteConnection   # Style B: where / order / paginação
-}
 ```
 
-Combinações aceitas no input: só `date` (dia); só `year` (ano); `year` + `month` (mês). Qualquer outra lança `stock.quoteperiod.invalid` (RN-14). Escolhi três campos opcionais, e não um `@oneOf`, para manter o contrato simples; é uma troca que pode ser revista.
+O input usa **`@oneOf`** (`descriptor.OneOf()`): exatamente um entre `day`, `month` e `year`. Isso **substitui** a ideia original de três campos opcionais com validação em runtime. Um mês é um objeto `{ year, month }`, e não um par solto de campos, porque assim `month` nunca aparece sem o ano. Mais de um campo, ou nenhum, é recusado pelo schema com HTTP 400, antes de executar (verificado por teste funcional).
 
-`DailyQuote` fica exposto direto, por um `ObjectType<DailyQuote>` com `BindFieldsExplicitly()`, como `FuelPriceType`. **O VO `Ticker` precisa ser declarado a partir do membro** (`descriptor.Field(q => q.Ticker).Name("ticker").Type<NonNullType<StringType>>().Resolve(...)`): declarar com `Field("ticker").Resolve(...)` compila, passa nos testes unitários e falha em runtime com `Unexpected Execution Error`, porque a projeção do EF não vê a coluna (CLAUDE.md, *Persistence*). Só um funcional contra banco real pega isso.
+**Não implementado:** `type Query { dailyQuotes(...): DailyQuoteConnection }` (Estilo B: `where`/`order`/paginação).
+
+Quando a query chegar, `DailyQuote` fica exposto direto, por um `ObjectType<DailyQuote>` com `BindFieldsExplicitly()`, como `FuelPriceType`. **O VO `Ticker` precisa ser declarado a partir do membro** (`descriptor.Field(q => q.Ticker).Name("ticker").Type<NonNullType<StringType>>().Resolve(...)`): declarar com `Field("ticker").Resolve(...)` compila, passa nos testes unitários e falha em runtime com `Unexpected Execution Error`, porque a projeção do EF não vê a coluna (CLAUDE.md, *Persistence*). Só um funcional contra banco real pega isso.
 
 Toda a superfície nasce documentada em XML em PT-BR (regra da documentação do contrato GraphQL), incluindo que `importDailyQuotes` é público e pesado.
 
@@ -190,7 +200,8 @@ Toda a superfície nasce documentada em XML em PT-BR (regra da documentação do
 - **URL:** `GET https://bvmf.bmfbovespa.com.br/InstDados/SerHist/{arquivo}`, onde `arquivo` é `COTAHIST_A{yyyy}.ZIP`, `COTAHIST_M{MMyyyy}.ZIP` ou `COTAHIST_D{ddMMyyyy}.ZIP`. O domínio `www.b3.com.br/pb/inst-dados/...` responde 404; este é o host que serve o arquivo.
 - **Auth:** nenhuma.
 - **Disponibilidade medida em 2026-10-10:** anual de 1986 (8,7 MB) a 2026 (91 MB, reconstruído diariamente); mensal de 2020, 2024 e 2026 (3 a 10 MB); diário de 02/09/2025 (332 KB) a 09/10/2026 (564 KB), sem que se tenha testado o limite de retenção. Dias sem pregão e datas futuras: 404.
-- **Conteúdo do ZIP:** um TXT (no diário: `COTAHIST_D09102026.TXT`). O provider escolhe a entrada pela extensão `.TXT`, sem fixar o nome.
+- **Conteúdo do ZIP:** um único arquivo de texto. Nos arquivos de 2002 em diante ele se chama `COTAHIST_D09102026.TXT` (ou `_M`/`_A`); **nos anuais até 2001 o nome não tem extensão** (`COTAHIST.A1995`). O provider escolhe a entrada cujo nome **começa por `COTAHIST`**, sem depender da extensão. A primeira versão procurava `.TXT` e falhou em todo ano anterior a 2002 (corrigido em `e1f0d1a`).
+- **Importado de fato:** a cobertura por ano está em §11. Anuais e mensais foram misturados conforme o ano, porque o mensal só existe para os anos recentes.
 - **Cadência:** o diário do dia aparece de madrugada do dia seguinte ao pregão.
 
 ### 7.2 Layout do registro `01` (245 caracteres, posições a partir de 1)
@@ -232,6 +243,11 @@ Toda a superfície nasce documentada em XML em PT-BR (regra da documentação do
 3. **O trailer conta só os registros `01`.** O PDF diz que inclui header e trailer, mas a amostra tem 19.213 registros `01`, header e trailer (19.215 linhas) e o campo traz 19.213.
 4. **`PREMED` pode ficar fora de [mínima, máxima]** (1 linha de 1.847).
 5. O nome do arquivo no header (`COTAHIST.2026`) vem assim mesmo no arquivo diário.
+6. **A entrada do ZIP perde a extensão `.TXT` nos anuais até 2001** (`COTAHIST.A1995`), ver §7.1.
+7. **O campo `CODISI` nem sempre é um ISIN.** Em 1995, de janeiro a abril, traz o código antigo da empresa (`ACESACON`); de maio em diante, o ISIN completo (`BRACESACNOR5`). Ver RN-16.
+8. **Códigos de negociação de 3 letras com espaço até 1997** (`PET 4`, `BB  4`), e **sufixo duplo `FF`** no fracionário em 2000 (`PETR4FF`). Ver RN-16 e RN-18.
+9. **Moeda diferente de `R$` antes de 01/07/1994**, ver RN-15.
+10. **O trailer diverge do número de registros lidos em 2** nos anuais de 1998 e de 2000 (RN-13).
 
 Um sexto ponto é de contexto, não de divergência: a revisão do PDF é de 2020, então o conferido hoje vale como o contrato real. O teste de contrato externo (§9) existe justamente para avisar quando o formato mudar.
 
@@ -242,34 +258,66 @@ Um sexto ponto é de contexto, não de divergência: a revisão do PDF é de 202
 | Commit | Entrega |
 |---|---|
 | `613863a` | `Ticker` aceita dígito na raiz — RN-09 |
-
-Os demais commits entram aqui conforme saírem. Ordem prevista: `QuotePeriod` e `DailyQuote` (domínio) → `CotahistLineParser` → porta, comando, handler e use case → client e provider → configuration e migration → GraphQL.
+| `5c89a35` | `QuotePeriod` (dia, mês e ano) — RF-01, RN-14 |
+| `30eb79f` | Agregado `DailyQuote` e `QuoteMarketType` — RN-01, RN-07 |
+| `2b2c2a9` | Porta `IDailyQuoteProvider` e item de importação — RF-03 |
+| `abba523` | `GetFiguresError`, validação sem exceção usada pelo parser — RN-07 |
+| `da1c409` | `CotahistLineParser` — RF-04, RN-03 a RN-06, RN-08 |
+| `33035d0` | Comando e handler com upsert em lotes — RF-05, RF-06, RN-11, RN-12, RNF-02 |
+| `2633dbd` | `B3CotahistProvider`, download em arquivo temporário e leitura em streaming — RF-02, RNF-01, RN-13 |
+| `bb3f13d` | Persistência com índice único e `CHECK` — RN-02, RN-07 |
+| `657160e` | Caso de uso `ImportDailyQuotes` — RF-01 |
+| `f12c5a2` | Mutation `importDailyQuotes` com input `@oneOf` — RF-07, §6 |
+| `e1f0d1a` | Entrada do ZIP achada por nome, não por `.TXT` — §7.1 |
+| `d14c688` | Coluna `legacy_ticker` — RN-17 |
+| `2bfe4ce` | Conversão de códigos antigos e do sufixo `FF` — RN-15, RN-16, RN-18 |
+| (pendente) | Query `dailyQuotes` — RF-08 |
 
 ---
 
-## 9. Cobertura de testes (planejada)
+## 9. Cobertura de testes
 
-| Nível | Cobre |
-|---|---|
-| Domínio (`TickerTests`) | **Entregue:** raiz com dígito (`B3SA3`, `AAPL34`, `V1IP34`, `B1003`) e entradas inválidas novas. |
-| Domínio (`QuotePeriodTests`, `DailyQuoteTests`) | período válido e inválido por forma; `Create` e `UpdateValues` revalidam RN-07; código do erro como literal. |
-| Parser (unit) | linhas literais copiadas do arquivo real: ação comum, BDR, ETF, fracionário, `FATCOT` 100 e 1000; preço `/100`; **miss** para tamanho errado, ticker fora do padrão (`MRSA3BF`), mercado fora de escopo, moeda ≠ `R$`, número ilegível. |
-| Provider (unit) | ZIP montado em memória; header e trailer ignorados; aviso quando o trailer diverge; 404 vira "arquivo não encontrado"; falha de transporte propaga. |
-| Handler (unit) | cria; atualiza o alterado; ignora o idêntico; limpa o tracker por lote. |
-| Use case | período inválido não chega ao handler; `date` / `year` / `year+month` viram a forma certa. |
-| Persistência (Testcontainers) | round-trip com o VO `Ticker` convertido; índice único barrando duplicata; `CHECK` barrando preço ≤ 0; upsert e2e em `DbContext`s separados. |
-| Funcional (GraphQL) | `dailyQuotes` com `where`/`order`/paginação **contra banco real** (pega o problema do VO na projeção); `importDailyQuotes` com período inválido. |
-| Contrato externo (`external-contracts.yml`) | baixa um diário real recente e confere: 245 caracteres por linha, header e trailer presentes, parse sem miss inesperado. Fora do CI normal, pelo mesmo motivo do ViaCEP e da Anbima. |
+| Nível | Cobre | Status |
+|---|---|---|
+| Domínio (`TickerTests`) | raiz com dígito (`B3SA3`, `AAPL34`, `V1IP34`, `B1003`) e entradas inválidas novas. | Entregue |
+| Domínio (`QuotePeriodTests`, `DailyQuoteTests`) | período válido e inválido por forma; `Create` e `UpdateValues` revalidam RN-07; código do erro como literal. | Entregue |
+| Parser (`CotahistLineParserTests`) | linhas literais copiadas do arquivo real: ação comum, BDR, ETF, fracionário, `FATCOT` 100 e 1000; preço `/100`; **miss** para tamanho errado, ticker fora do padrão, mercado fora de escopo, moeda ≠ `R$`, número ilegível; e as conversões de **códigos antigos** de 1995 (`PET 4`, `BB  4`, as duas formas de ISIN) e do `PETR4FF` de 2000. | Entregue |
+| Provider (`B3CotahistProviderTests`) | ZIP montado em memória; header e trailer ignorados; aviso quando o trailer diverge; 404 vira "arquivo não encontrado"; falha de transporte propaga; entrada sem `.TXT` (`COTAHIST.A1995`). | Entregue |
+| Handler e caso de uso (unit) | cria; atualiza o alterado; ignora o idêntico; chave repetida no lote vira uma; limpa o tracker por lote; período inválido não chega ao handler. | Entregue |
+| Persistência (Testcontainers) | round-trip com o VO `Ticker`; índice único barrando duplicata; `CHECK` barrando preço ≤ 0; `legacy_ticker` gravado e pesquisável; upsert e2e em `DbContext`s separados (`ImportDailyQuotesHandlerTests`). | Entregue |
+| Funcional (`ImportDailyQuotesMutationTests`) | dia, mês e ano chegam ao provider; arquivo inexistente devolve zeros; `@oneOf` recusa mais de um campo e input vazio; ano anterior a 1986 devolve `stock.quoteperiod.invalid`; o schema declara `@oneOf`. | Entregue |
+| Funcional da query `dailyQuotes` | `where`/`order`/paginação **contra banco real** (pega o problema do VO na projeção). | Pendente (a query não existe) |
+| Contrato externo (`external-contracts.yml`) | baixa um diário real recente e confere: 245 caracteres por linha, header e trailer presentes, parse sem miss inesperado. Fora do CI normal, pelo mesmo motivo do ViaCEP e da Anbima. | **Pendente** |
 
 ---
 
 ## 10. Riscos e decisões em aberto
 
-- **Performance da escrita no ano inteiro (principal risco).** O import da ANP mediu um `INSERT ... RETURNING` por linha do EF. Um ano de COTAHIST são ≈ 480 mil linhas: da ordem de minutos, na mesma faixa do ANP. Dia e mês (≈ 2 mil e ≈ 40 mil linhas) não sofrem. Para o carregamento histórico completo (1986 em diante) o caminho certo é o **bulk writer com `COPY`** já decidido em `docs/srs/0002-fuel-anp.md` §10. Se o primeiro slice sair no EF puro, registrar como TDR, com o ponteiro `[TECH-DEBT]` no handler, em vez de deixar implícito.
-- **`ExecutionTimeout` do GraphQL.** O limite de 10 minutos do import da ANP precisa ser conferido contra o tempo medido do anual antes de prometer que a mutation serve para ele.
+- **Performance da escrita (medida).** O EF faz um `INSERT ... RETURNING` por linha: ≈ 1 ms por linha (RNF-09). A carga de 1994 a 2026 passou, com um ano recente de 400 mil linhas levando alguns minutos. É viável para carga manual e lenta para reconstruir tudo. O **bulk writer com `COPY`** decidido em `docs/srs/0002-fuel-anp.md` §10 **não foi construído**, e o TDR que este documento prometia **não foi aberto**: o handler não tem o ponteiro `[TECH-DEBT]`. É dívida assumida sem registro.
+- **`ExecutionTimeout` do GraphQL.** Resolvido para o uso atual: imports anuais de até ~414 mil linhas terminaram pela mutation. O limite exato não foi medido.
 - **Disparo síncrono no request**, igual à ANP. Agendamento (`BackgroundService`) segue em aberto para as duas fontes.
-- **Forma do input.** Três campos opcionais em vez de `@oneOf` (§6). Revisar se a validação em runtime incomodar.
+- **Colisão de chave (`BIOM12F`).** Decisão sobre incluir o ISIN na chave única em aberto (RN-02).
+- **Exceções de código antigo.** A conversão pela raiz do ISIN erra quando a classe mudou de número (`VAL 4` → `VALE4`, hoje `VALE5`). Uma tabela de exceções não existe (RN-16).
+- **Emenda de tickers que mudaram por fusão.** O Itaú muda de `ITAU4` (até 19/05/2009) para `ITUB4` (a partir de 20/05/2009), por causa da fusão com o Unibanco. A série contínua exige emendar os dois códigos, e não é só renomear: houve troca de ações. Não implementado.
+- **Query `dailyQuotes` e contrato externo.** Pendentes (RF-08 e §9).
 - **Preço por lote (`FATCOT`).** Gravar cru e deixar o consumidor dividir (RN-08) é a escolha de menor perda; uma coluna ou propriedade derivada "preço unitário" é fácil de acrescentar quando uma leitura precisar.
 - **Mercados fora do escopo.** Opções, termo e demais viriam com valores novos em `QuoteMarketType` e campos próprios (`PREEXE`, `DATVEN`). O PDF documenta a semântica, mas a amostra de hoje não foi conferida para eles.
 - **Ajuste por proventos.** Série de preço ajustado exigiria uma fonte de eventos corporativos; não existe no projeto hoje.
 - **Relação com a Brapi.** `stockQuote` continua sendo o preço do momento; o COTAHIST só sai depois do fechamento. Não há reconciliação entre as duas fontes.
+
+---
+
+## 11. Carga histórica (estado em 2026-10-11)
+
+| Item | Valor |
+|---|---|
+| Período | **01/07/1994 a 09/10/2026** (RN-15: antes disso a moeda não é o real) |
+| Linhas em `daily_quotes` | ≈ 6,1 milhões (estimativa do catálogo do Postgres) |
+| Tamanho | ≈ 1,4 GB: 913 MB de dados e 518 MB de índices |
+| Pregões por ano | de 245 a 251 em cada ano completo; 124 em 1994 (só o segundo semestre) e 194 em 2026 (até 09/10) |
+| Linhas com `legacy_ticker` | ≈ 418 mil (371.270 dos códigos de três letras de 1994 a 1998, mais 47.076 do sufixo `FF` de 2000), em pouco mais de mil tickers atuais |
+| Lacunas | nenhum mês ausente de janeiro de 2002 a outubro de 2026 (conferido mês a mês); de 1994 a 2001 a conferência foi por ano, contra o número de pregões do índice |
+
+**Validação cruzada.** O número de pregões de cada ano em `daily_quotes` coincide, ano a ano, com o número de pregões do Ibovespa oficial em `index_quotes` (`docs/srs/0008-ibovespa-index.md`, §11), de julho de 1994 em diante: nenhum pregão de um lado sem o outro.
+
+**Como foi carregado.** Por anual onde o mensal não existe (os anos 1990 e 2000, e alguns dos 2010) e por mensal nos anos recentes. Reimportar é seguro (RN-11), e foi o que corrigiu 1998 e 2000 depois de cada ajuste do parser: o contador `quotesCreated` mostrou o que o ajuste destravou. Os números exatos de linhas, de tickers distintos e de linhas com `legacy_ticker` são aproximados; uma contagem completa não foi refeita nesta revisão.

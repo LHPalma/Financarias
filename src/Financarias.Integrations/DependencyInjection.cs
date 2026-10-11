@@ -25,7 +25,11 @@ using Financarias.Integrations.MarketData.B3.Cotahist.Providers;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.B3.Indexes.Providers;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
+using Financarias.Integrations.MarketData;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Providers;
+using Financarias.Integrations.MarketData.Fred;
+using Financarias.Integrations.MarketData.Fred.Clients;
+using Financarias.Integrations.MarketData.Fred.Providers;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
@@ -180,7 +184,23 @@ public static class DependencyInjection
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
             });
 
-        services.AddScoped<IIndicatorValueProvider, BcbIndicatorValueProvider>();
+        services.AddScoped<BcbIndicatorValueProvider>();
+
+        var fredBaseUrl = configuration["Integrations:Fred:BaseUrl"]
+                          ?? throw new InvalidOperationException("Integrations:Fred:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IFredClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(fredBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(1);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.Configure<FredOptions>(configuration.GetSection("Integrations:Fred"));
+        services.AddScoped<FredIndicatorValueProvider>();
+        services.AddScoped<IIndicatorValueProvider, IndicatorValueProviderRouter>();
 
         var b3CompaniesBaseUrl = configuration["Integrations:B3Companies:BaseUrl"]
                                  ?? throw new InvalidOperationException("Integrations:B3Companies:BaseUrl not configured.");

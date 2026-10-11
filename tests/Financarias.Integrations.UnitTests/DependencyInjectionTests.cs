@@ -6,6 +6,7 @@ using Financarias.Integrations.MarketData.B3.CorporateEvents.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
+using Financarias.Integrations.MarketData.Fred.Clients;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
 using Financarias.Integrations.MarketData.ErApi.Clients;
@@ -29,6 +30,7 @@ public class DependencyInjectionTests
         typeof(IB3CotahistClient),
         typeof(IB3IndexClient),
         typeof(IBcbSgsClient),
+        typeof(IFredClient),
         typeof(IB3CompanyClient),
         typeof(IBrasilApiClient)
     ];
@@ -52,6 +54,7 @@ public class DependencyInjectionTests
                 ["Integrations:B3:BaseUrl"] = "https://bvmf.bmfbovespa.com.br",
                 ["Integrations:B3Indexes:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br",
                 ["Integrations:Bcb:BaseUrl"] = "https://api.bcb.gov.br",
+                ["Integrations:Fred:BaseUrl"] = "https://api.stlouisfed.org",
                 ["Integrations:B3Companies:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br",
                 ["Integrations:BrasilApi:BaseUrl"] = "https://brasilapi.com.br"
             })

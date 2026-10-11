@@ -10,6 +10,7 @@ public static class MarketDataErrors
     public const string IndexQuoteInvalid = "index.quote.invalid";
     public const string IndexYearInvalid = "index.year.invalid";
     public const string IndicatorYearInvalid = "indicator.year.invalid";
+    public const string CorporateEventInvalid = "corporate.event.invalid";
 
     public static DomainValidationException Ticker(string? ticker) =>
         new(TickerInvalid, $"Ticker not valid: '{ticker}'. Expected a letter, 3 letters or digits, then 1-2 digits (e.g. 'PETR4', 'B3SA3', 'AAPL34').");
@@ -28,4 +29,7 @@ public static class MarketDataErrors
 
     public static DomainValidationException IndicatorYear(int year) =>
         new(IndicatorYearInvalid, $"Indicator year not valid: {year}. Expected a year from {Indicators.IndicatorValue.FirstYear}.");
+
+    public static DomainValidationException CorporateEvent(string reason) =>
+        new(CorporateEventInvalid, $"Corporate event not valid: {reason}.");
 }

@@ -12,6 +12,8 @@ public static class MarketDataErrors
     public const string IndicatorYearInvalid = "indicator.year.invalid";
     public const string CorporateEventInvalid = "corporate.event.invalid";
     public const string CurrencyDateUnsupported = "currency.date.unsupported";
+    public const string InflationSeriesInvalid = "inflation.series.invalid";
+    public const string InflationDateUnavailable = "inflation.date.unavailable";
 
     public static DomainValidationException Ticker(string? ticker) =>
         new(TickerInvalid, $"Ticker not valid: '{ticker}'. Expected a letter, 3 letters or digits, then 1-2 digits (e.g. 'PETR4', 'B3SA3', 'AAPL34').");
@@ -33,6 +35,12 @@ public static class MarketDataErrors
 
     public static DomainValidationException CorporateEvent(string reason) =>
         new(CorporateEventInvalid, $"Corporate event not valid: {reason}.");
+
+    public static DomainValidationException InflationSeries(string reason) =>
+        new(InflationSeriesInvalid, $"Inflation series not valid: {reason}.");
+
+    public static DomainValidationException InflationDate(DateOnly date, DateOnly firstDate, DateOnly lastDate) =>
+        new(InflationDateUnavailable, $"No inflation index for {date:yyyy-MM-dd}. Available from {firstDate:yyyy-MM-dd} to {lastDate:yyyy-MM-dd}.");
 
     public static DomainValidationException CurrencyDate(string date) =>
         new(CurrencyDateUnsupported, $"No currency conversion for {date}. Supported from {Currencies.BrazilianCurrency.FirstSupportedDate:yyyy-MM-dd}.");

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Financarias.Application.MarketData.Stocks.Import;
 using Financarias.Domain.MarketData;
+using Financarias.Domain.MarketData.Currencies;
 using Financarias.Domain.MarketData.Stocks;
 
 namespace Financarias.Integrations.MarketData.B3.Cotahist;
@@ -11,7 +12,6 @@ public static class CotahistLineParser
     public const int LineLength = 245;
 
     private const string QuoteRecord = "01";
-    private const string ReferenceCurrency = "R$";
 
     public static CotahistLineResult TryParse(string line, out DailyQuoteImportItem? item)
     {
@@ -32,13 +32,13 @@ public static class CotahistLineParser
             return CotahistLineResult.OutOfScope;
         }
 
-        if (!Field(line, 53, 56).Trim().Equals(ReferenceCurrency, StringComparison.Ordinal))
+        if (!DateOnly.TryParseExact(Field(line, 3, 10), "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var tradingDate)
+            || !BrazilianCurrency.IsLegalTenderOn(Field(line, 53, 56).Trim().ToString(), tradingDate))
         {
             return CotahistLineResult.Skipped;
         }
 
-        if (!DateOnly.TryParseExact(Field(line, 3, 10), "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var tradingDate)
-            || !TryResolveTicker(line, out var ticker, out var legacyTicker)
+        if (!TryResolveTicker(line, out var ticker, out var legacyTicker)
             || !TryParseMoney(Field(line, 57, 69), out var openPrice)
             || !TryParseMoney(Field(line, 70, 82), out var highPrice)
             || !TryParseMoney(Field(line, 83, 95), out var lowPrice)

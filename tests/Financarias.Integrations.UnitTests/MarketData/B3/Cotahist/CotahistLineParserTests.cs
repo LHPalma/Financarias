@@ -1,3 +1,4 @@
+using Financarias.Domain.MarketData.Currencies;
 using Financarias.Domain.MarketData.Stocks;
 using Financarias.Integrations.MarketData.B3.Cotahist;
 
@@ -42,6 +43,25 @@ public class CotahistLineParserTests
 
     private const string LegacyAces3OldIsinLine =
         "011995010202ACE 3       010ACESITA     ON *INT      R$  000000000630000000000063000000000006300000000000630000000000063000000000006300000000000650000001000000000000200000000000000001260000000000000000009999123100010000000000000000ACESACON    119";
+
+    // Linhas reais dos anuais de 1986 a 1994: a mesma ACESITA em cinco moedas diferentes.
+    private const string Cruzeiro1986Line =
+        "011986010202ACE 2       010ACESITA     PP  C03      CR$ 000000000043000000000004300000000000430000000000043000000000004300000000000440000000000000000002000000000001200000000000000516000000000000000000009999123100000010000000000000ACESACPP    113";
+
+    private const string Cruzado1986Line =
+        "011986030402ACE 2       010ACESITA     PP *C03      CZ$ 000000000060000000000006500000000000500000000000061700000000006000000000000000000000000000000013000000000058480000000000000036138000000000000000009999123100010000000000000000ACESACPP    113";
+
+    private const string CruzadoNovo1990Line =
+        "011990010202EAL 1       010ACO ALTONA  OP *         NCZ$000000000300000000000030000000000003000000000000300000000000030000000000003000000000000000000002000000000000177500000000000000532500000000000000009999123100010000000000000000EALTACOP    121";
+
+    private const string Cruzeiro1990Line =
+        "011990031902PMA 2       010PARANAPANEMAPP *ES       CR$ 000000004200000000000420000000000040000000000004068200000000400000000000040000000000000000000008000000000000170000000000000006916000000000000000009999123100010000000000000000PMAMACPP    017";
+
+    private const string Cruzeiro1993Line =
+        "011993010402ACE 4       010ACESITA     PN           CR$ 000000020200000000002020000000000202000000000020200000000002020000000000220000000000000000000001000000000000001000000000000202000000000000000000009999123100000010000000000000ACESACPN    115";
+
+    private const string CruzeiroReal1994Line =
+        "011994030802ACE 3       010ACESITA     ON  INT      CR$ 000000003300000000000330000000000031000000000003152000000000320000000000031000000000003240000012000000000000250000000000007880000000000000000000009999123100000010000000000000ACESACON    116";
 
     // Linha real do COTAHIST_A2000: mercado fracionário com sufixo duplo.
     private const string DoubleFractionalSuffixLine =
@@ -209,6 +229,74 @@ public class CotahistLineParserTests
         Assert.Equal(QuoteMarketType.Fractional, item.MarketType);
     }
 
+    [Theory(DisplayName = "TryParse lê as linhas das moedas antigas guardando o preço na moeda original")]
+    [InlineData(nameof(Cruzeiro1986Line), "ACES2", "1986-01-02", 4.30)]
+    [InlineData(nameof(Cruzado1986Line), "ACES2", "1986-03-04", 6.00)]
+    [InlineData(nameof(CruzadoNovo1990Line), "EALT1", "1990-01-02", 30.00)]
+    [InlineData(nameof(Cruzeiro1990Line), "PMAM2", "1990-03-19", 420.00)]
+    [InlineData(nameof(Cruzeiro1993Line), "ACES4", "1993-01-04", 2020.00)]
+    [InlineData(nameof(CruzeiroReal1994Line), "ACES3", "1994-03-08", 330.00)]
+    public void TryParse_ReadsOldCurrencyLines_KeepingTheOriginalPrice(
+        string lineName, string ticker, string date, double openPrice)
+    {
+        // Arrange
+        var line = LineByName(lineName);
+
+        // Act
+        var result = CotahistLineParser.TryParse(line, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Parsed, result);
+        Assert.Equal(ticker, item!.Ticker.Value);
+        Assert.Equal(DateOnly.Parse(date), item.TradingDate);
+        Assert.Equal((decimal)openPrice, item.OpenPrice);
+        Assert.NotNull(item.LegacyTicker);
+    }
+
+    [Fact(DisplayName = "O preço lido em Cruzeiro vira o equivalente exato em reais pelo conversor do domínio")]
+    public void TryParse_ThenToReais_GivesTheExactEquivalentInReais()
+    {
+        // Act
+        CotahistLineParser.TryParse(Cruzeiro1993Line, out var item);
+        var inReais = BrazilianCurrency.ToReais(item!.OpenPrice, item.TradingDate);
+
+        // Assert
+        Assert.Equal(2_020m / 2_750_000m, inReais);
+    }
+
+    [Theory(DisplayName = "TryParse pula a linha cujo código de moeda não é o da moeda que vigorava na data")]
+    [InlineData(nameof(Cruzeiro1993Line), 53, "R$  ")]
+    [InlineData(nameof(Cruzeiro1986Line), 53, "CZ$ ")]
+    [InlineData(nameof(Cruzado1986Line), 53, "CR$ ")]
+    [InlineData(nameof(CruzadoNovo1990Line), 53, "CR$ ")]
+    [InlineData(nameof(Cruzeiro1993Line), 53, "US$ ")]
+    public void TryParse_ReturnsSkipped_WhenTheCurrencyCodeDoesNotMatchTheDate(string lineName, int position, string value)
+    {
+        // Arrange
+        var line = Replace(LineByName(lineName), position, value);
+
+        // Act
+        var result = CotahistLineParser.TryParse(line, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Skipped, result);
+        Assert.Null(item);
+    }
+
+    [Fact(DisplayName = "TryParse pula uma linha em Cruzeiro Real datada depois do Real (CR$ em 2026)")]
+    public void TryParse_ReturnsSkipped_ForOldCurrencyCodeInTheRealEra()
+    {
+        // Arrange
+        var line = Replace(Petr4Line, 53, "CR$ ");
+
+        // Act
+        var result = CotahistLineParser.TryParse(line, out var item);
+
+        // Assert
+        Assert.Equal(CotahistLineResult.Skipped, result);
+        Assert.Null(item);
+    }
+
     [Fact(DisplayName = "TryParse pula o código antigo quando o campo do ISIN não permite derivar a raiz")]
     public void TryParse_ReturnsSkipped_WhenLegacyCodeHasNoUsableIsin()
     {
@@ -290,6 +378,17 @@ public class CotahistLineParserTests
         Assert.True(result == CotahistLineResult.Skipped, description);
         Assert.Null(item);
     }
+
+    private static string LineByName(string name) => name switch
+    {
+        nameof(Cruzeiro1986Line) => Cruzeiro1986Line,
+        nameof(Cruzado1986Line) => Cruzado1986Line,
+        nameof(CruzadoNovo1990Line) => CruzadoNovo1990Line,
+        nameof(Cruzeiro1990Line) => Cruzeiro1990Line,
+        nameof(Cruzeiro1993Line) => Cruzeiro1993Line,
+        nameof(CruzeiroReal1994Line) => CruzeiroReal1994Line,
+        _ => throw new ArgumentOutOfRangeException(nameof(name), name, null),
+    };
 
     private static string Replace(string line, int firstPosition, string value) =>
         line[..(firstPosition - 1)] + value + line[(firstPosition - 1 + value.Length)..];

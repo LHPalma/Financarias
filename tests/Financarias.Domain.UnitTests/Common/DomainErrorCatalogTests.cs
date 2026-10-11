@@ -33,6 +33,7 @@ public class DomainErrorCatalogTests
             "analytics.yield.invalid",
             "contacts.email.invalid",
             "corporate.event.invalid",
+            "currency.date.unsupported",
             "fuel.price.invalid",
             "fuel.station.name.required",
             "holiday.name.required",

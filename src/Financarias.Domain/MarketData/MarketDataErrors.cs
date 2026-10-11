@@ -11,6 +11,7 @@ public static class MarketDataErrors
     public const string IndexYearInvalid = "index.year.invalid";
     public const string IndicatorYearInvalid = "indicator.year.invalid";
     public const string CorporateEventInvalid = "corporate.event.invalid";
+    public const string CurrencyDateUnsupported = "currency.date.unsupported";
 
     public static DomainValidationException Ticker(string? ticker) =>
         new(TickerInvalid, $"Ticker not valid: '{ticker}'. Expected a letter, 3 letters or digits, then 1-2 digits (e.g. 'PETR4', 'B3SA3', 'AAPL34').");
@@ -32,4 +33,7 @@ public static class MarketDataErrors
 
     public static DomainValidationException CorporateEvent(string reason) =>
         new(CorporateEventInvalid, $"Corporate event not valid: {reason}.");
+
+    public static DomainValidationException CurrencyDate(string date) =>
+        new(CurrencyDateUnsupported, $"No currency conversion for {date}. Supported from {Currencies.BrazilianCurrency.FirstSupportedDate:yyyy-MM-dd}.");
 }

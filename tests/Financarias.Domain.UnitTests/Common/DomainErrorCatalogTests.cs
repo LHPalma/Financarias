@@ -35,6 +35,7 @@ public class DomainErrorCatalogTests
             "fuel.price.invalid",
             "fuel.station.name.required",
             "holiday.name.required",
+            "index.quote.invalid",
             "legalentity.cnpj.invalid",
             "stock.quote.invalid",
             "stock.quoteperiod.invalid",

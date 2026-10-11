@@ -30,7 +30,7 @@ public class IndicatorValueProviderRouterTests
         _bcb.GetSeriesAsync(default, default!, default!, default).ReturnsForAnyArgs([]);
         _eia.GetSpotPricesFileAsync(default!, default).ReturnsForAnyArgs(_ => Task.FromResult<Stream>(new MemoryStream([0])));
         _cboe.GetVixHistoryAsync(default).ReturnsForAnyArgs("DATE,OPEN,HIGH,LOW,CLOSE\n");
-        _fed.GetSeriesAsync(default!, default!, default!, default).ReturnsForAnyArgs(string.Empty);
+        _fed.GetSeriesAsync(default!, default!, default!, default).ReturnsForAnyArgs("\"Time Period\",\"X\"\n");
         _worldBankPage.GetCommodityMarketsPageAsync(default).ReturnsForAnyArgs("<html></html>");
 
         _router = new IndicatorValueProviderRouter(

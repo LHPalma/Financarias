@@ -14,6 +14,10 @@ public class FedDollarIndexValueProvider(
     // Identificador da série "Nominal Broad Dollar Index" (JRXWTFB_N.B) no Data Download Program do Fed
     private const string BroadDollarIndexSeries = "122e3bcb627e8e53f1bf72a1a09cfb81";
     private const int StoredDecimals = 6;
+    private const int Attempts = 4;
+    private const string HeaderMarker = "Time Period";
+
+    public TimeSpan RetryDelay { get; init; } = TimeSpan.FromSeconds(3);
 
     public async Task<IReadOnlyList<IndicatorValueImportItem>> GetYearAsync(
         EconomicIndicator indicator,
@@ -25,7 +29,7 @@ public class FedDollarIndexValueProvider(
             throw new ArgumentOutOfRangeException(nameof(indicator), indicator, "Not a Federal Reserve indicator.");
         }
 
-        var csv = await client.GetSeriesAsync(BroadDollarIndexSeries, $"01/01/{year}", $"12/31/{year}", cancellationToken);
+        var csv = await FetchAsync(year, cancellationToken);
         var items = new List<IndicatorValueImportItem>();
 
         foreach (var line in csv.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -54,5 +58,27 @@ public class FedDollarIndexValueProvider(
         }
 
         return items.OrderBy(item => item.ReferenceDate).ToList();
+    }
+
+    // O endpoint do Fed às vezes devolve corpo vazio com status 200; sem o cabeçalho da série isso seria lido como "ano sem dados"
+    private async Task<string> FetchAsync(int year, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            var csv = await client.GetSeriesAsync(BroadDollarIndexSeries, $"01/01/{year}", $"12/31/{year}", cancellationToken);
+
+            if (csv.Contains(HeaderMarker, StringComparison.Ordinal))
+            {
+                return csv;
+            }
+
+            if (attempt == Attempts)
+            {
+                throw new InvalidOperationException($"The Federal Reserve returned an empty answer for {year} after {Attempts} attempts.");
+            }
+
+            logger.LogInformation("Federal Reserve answered {Year} without the series header (attempt {Attempt}); retrying.", year, attempt);
+            await Task.Delay(RetryDelay, cancellationToken);
+        }
     }
 }

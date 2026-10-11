@@ -16,7 +16,7 @@ public class FedDollarIndexValueProviderTests
 
     public FedDollarIndexValueProviderTests()
     {
-        _provider = new FedDollarIndexValueProvider(_client, NullLogger<FedDollarIndexValueProvider>.Instance);
+        _provider = new FedDollarIndexValueProvider(_client, NullLogger<FedDollarIndexValueProvider>.Instance) { RetryDelay = TimeSpan.Zero };
     }
 
     [Fact(DisplayName = "GetYearAsync pula as seis linhas de cabeçalho e lê data yyyy-MM-dd e valor, em ordem de data")]
@@ -60,6 +60,31 @@ public class FedDollarIndexValueProviderTests
 
         // Assert
         await _client.Received(1).GetSeriesAsync("122e3bcb627e8e53f1bf72a1a09cfb81", "01/01/2020", "12/31/2020", Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "GetYearAsync tenta de novo quando o Fed devolve corpo vazio e usa a resposta seguinte")]
+    public async Task GetYear_RetriesAnEmptyAnswer()
+    {
+        // Arrange
+        _client.GetSeriesAsync(default!, default!, default!, default).ReturnsForAnyArgs(string.Empty, string.Empty, Header + "2020-01-02,114.9745\n");
+
+        // Act
+        var items = await _provider.GetYearAsync(EconomicIndicator.DollarIndex, 2020);
+
+        // Assert
+        Assert.Equal(114.9745m, Assert.Single(items).Value);
+        await _client.ReceivedWithAnyArgs(3).GetSeriesAsync(default!, default!, default!, default);
+    }
+
+    [Fact(DisplayName = "GetYearAsync falha, em vez de devolver ano sem dados, quando o Fed só devolve corpo vazio")]
+    public async Task GetYear_AlwaysEmpty_Throws()
+    {
+        // Arrange
+        ClientReturns(string.Empty);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _provider.GetYearAsync(EconomicIndicator.DollarIndex, 2020));
+        await _client.ReceivedWithAnyArgs(4).GetSeriesAsync(default!, default!, default!, default);
     }
 
     [Fact(DisplayName = "GetYearAsync recusa um indicador que não é do Federal Reserve")]

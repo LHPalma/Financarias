@@ -1,5 +1,6 @@
 using Financarias.Application.Holidays.Import;
 using Financarias.Domain.Holidays.Models;
+using Financarias.Integrations.Anbima.Holidays.Providers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,7 +22,9 @@ public class AnbimaHolidayProviderTests
         services.AddIntegrations(configuration);
 
         _provider = services.BuildServiceProvider()
-            .GetRequiredService<IHolidayProvider>();
+            .GetServices<IHolidayProvider>()
+            .OfType<AnbimaHolidayProvider>()
+            .Single();
     }
 
     [Fact(DisplayName = "Baixa e parseia a planilha real de feriados da Anbima")]

@@ -1,5 +1,6 @@
 using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Anbima.Holidays.Clients;
+using Financarias.Integrations.BrasilApi.Holidays.Clients;
 using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
 using Financarias.Integrations.MarketData.B3.CorporateEvents.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
@@ -28,7 +29,8 @@ public class DependencyInjectionTests
         typeof(IB3CotahistClient),
         typeof(IB3IndexClient),
         typeof(IBcbSgsClient),
-        typeof(IB3CompanyClient)
+        typeof(IB3CompanyClient),
+        typeof(IBrasilApiClient)
     ];
 
     [Theory(DisplayName = "Resolve cada cliente Refit registrado sem chamar a rede")]
@@ -50,7 +52,8 @@ public class DependencyInjectionTests
                 ["Integrations:B3:BaseUrl"] = "https://bvmf.bmfbovespa.com.br",
                 ["Integrations:B3Indexes:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br",
                 ["Integrations:Bcb:BaseUrl"] = "https://api.bcb.gov.br",
-                ["Integrations:B3Companies:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br"
+                ["Integrations:B3Companies:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br",
+                ["Integrations:BrasilApi:BaseUrl"] = "https://brasilapi.com.br"
             })
             .Build();
 

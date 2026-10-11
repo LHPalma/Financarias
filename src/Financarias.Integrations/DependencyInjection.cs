@@ -14,6 +14,8 @@ using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Addresses.ViaCep.Providers;
 using Financarias.Integrations.Anbima.Holidays.Clients;
 using Financarias.Integrations.Anbima.Holidays.Providers;
+using Financarias.Integrations.BrasilApi.Holidays.Clients;
+using Financarias.Integrations.BrasilApi.Holidays.Providers;
 using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
 using Financarias.Integrations.MarketData.Anp.Fuel.Providers;
 using Financarias.Integrations.MarketData.B3.CorporateEvents.Clients;
@@ -59,6 +61,20 @@ public static class DependencyInjection
             .ConfigureHttpClient(client => client.BaseAddress = new Uri(anbimaBaseUrl));
 
         services.AddScoped<IHolidayProvider, AnbimaHolidayProvider>();
+
+        var brasilApiBaseUrl = configuration["Integrations:BrasilApi:BaseUrl"]
+                               ?? throw new InvalidOperationException("Integrations:BrasilApi:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IBrasilApiClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(brasilApiBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(1);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<IHolidayProvider, BrasilApiHolidayProvider>();
 
         var brapiBaseUrl = configuration["Integrations:Brapi:BaseUrl"]
                            ?? throw new InvalidOperationException("Integrations:Brapi:BaseUrl not configured.");

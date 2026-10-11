@@ -57,7 +57,7 @@ public class ImportHolidaysUseCaseTests : IAsyncLifetime
         ]);
 
         await using var context = CreateContext();
-        var useCase = new ImportHolidaysUseCase(provider, context, new Repository<Holiday>(context));
+        var useCase = new ImportHolidaysUseCase([provider], context, new Repository<Holiday>(context));
 
         // Act
         var result = await useCase.ExecuteAsync();
@@ -69,5 +69,32 @@ public class ImportHolidaysUseCaseTests : IAsyncLifetime
         await using var verify = CreateContext();
         var persisted = await verify.Holidays.CountAsync();
         Assert.Equal(3, persisted); // Natal pré-existente + os 2 novos
+    }
+
+    [Fact(DisplayName = "Junta as fontes e, na mesma data, vale a primeira registrada")]
+    public async Task Import_WithSeveralProviders_MergesThemAndKeepsTheFirstOnTheSameDate()
+    {
+        // Arrange
+        var anbima = new StubHolidayProvider([new HolidayImportItem(new DateOnly(2001, 1, 1), "Confraternização Universal", CountryCode.BR)]);
+        var brasilApi = new StubHolidayProvider(
+        [
+            new HolidayImportItem(new DateOnly(2001, 1, 1), "Confraternização mundial", CountryCode.BR),
+            new HolidayImportItem(new DateOnly(1990, 1, 1), "Confraternização mundial", CountryCode.BR),
+        ]);
+
+        await using var context = CreateContext();
+        var useCase = new ImportHolidaysUseCase([anbima, brasilApi], context, new Repository<Holiday>(context));
+
+        // Act
+        var result = await useCase.ExecuteAsync();
+
+        // Assert
+        Assert.Equal(3, result.TotalFetched);
+        Assert.Equal(2, result.TotalSaved);
+
+        await using var verify = CreateContext();
+        var names = await verify.Holidays.ToDictionaryAsync(h => h.Date, h => h.Name);
+        Assert.Equal("Confraternização Universal", names[new DateOnly(2001, 1, 1)]);
+        Assert.Equal("Confraternização mundial", names[new DateOnly(1990, 1, 1)]);
     }
 }

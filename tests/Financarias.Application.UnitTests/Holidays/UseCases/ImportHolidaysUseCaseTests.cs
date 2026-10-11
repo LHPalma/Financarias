@@ -16,7 +16,7 @@ public class ImportHolidaysUseCaseTests
         provider.FetchHolidaysAsync(Arg.Any<CancellationToken>())
             .Returns((IReadOnlyList<HolidayImportItem>)[]);
         var repository = Substitute.For<IRepository<Holiday>>();
-        var useCase = new ImportHolidaysUseCase(provider, Substitute.For<IApplicationDbContext>(), repository);
+        var useCase = new ImportHolidaysUseCase([provider], Substitute.For<IApplicationDbContext>(), repository);
 
         // Act
         var result = await useCase.ExecuteAsync();

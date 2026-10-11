@@ -6,14 +6,19 @@ using Microsoft.EntityFrameworkCore;
 namespace Financarias.Application.Holidays.UseCases;
 
 public class ImportHolidaysUseCase(
-    IHolidayProvider provider,
+    IEnumerable<IHolidayProvider> providers,
     IApplicationDbContext dbContext,
     IRepository<Holiday> repository
 ) : IImportHolidaysUseCase
 {
     public async Task<HolidayImportResult> ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var fetched = await provider.FetchHolidaysAsync(cancellationToken);
+        var fetched = new List<HolidayImportItem>();
+        foreach (var provider in providers)
+        {
+            fetched.AddRange(await provider.FetchHolidaysAsync(cancellationToken));
+        }
+
         if (fetched.Count == 0)
         {
             return new HolidayImportResult(0, 0);

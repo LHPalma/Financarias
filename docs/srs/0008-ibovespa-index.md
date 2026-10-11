@@ -2,7 +2,7 @@
 
 - **Data:** 2026-10-11
 - **Feature:** `MarketData/Indexes` + `Integrations/MarketData/B3/Indexes`
-- **Status:** **entregue, exceto a consulta.** O agregado `IndexQuote`, a tabela `index_quotes`, a importação a partir da B3 e a mutation `importIndexQuotes` estão em `main` (§8). **Especificado, não implementado:** a query `indexQuotes` (RF-04, §6). Primeira carga: o Ibovespa de 2000 a 2026 (§11).
+- **Status:** **entregue, exceto a consulta.** O agregado `IndexQuote`, a tabela `index_quotes`, a importação a partir da B3 e a mutation `importIndexQuotes` estão em `main` (§8). **Especificado, não implementado:** a query `indexQuotes` (RF-04, §6). Carga feita: o Ibovespa de 1968 a 2026 (§11).
 - **Fonte externa:** endpoint de estatísticas por índice do site da B3 (`sistemaswebb3-listados.b3.com.br/indexStatisticsProxy`), sem chave. **Não é API documentada**: é o proxy que alimenta a página "Estatísticas históricas" de cada índice, o mesmo usado pelo pacote `rb3` (ropensci).
 - **Base empírica:** o endpoint foi conferido em **2026-10-11** contra o fechamento publicado pela imprensa (29/10/2018: 83.796,71 pontos) e contra a série 7 do Banco Central e o Yahoo `^BVSP` (diferença de 1 ponto, de arredondamento).
 
@@ -17,7 +17,7 @@ O substituto que se usava é o ETF `BOVA11`, e ele erra o índice. Em 08/10/2018
 
 ### 1.2 Escopo
 - Um fechamento por índice e por pregão, em pontos, com duas casas decimais.
-- Série **desde 1968** (o que a B3 publica) até o último pregão.
+- Série **desde 1968** (o que a B3 publica) até o último pregão, **bruta** (ver RN-08).
 - Só o **Ibovespa** na primeira versão; o modelo já admite outros índices (ver RN-01).
 
 **Fora de escopo (hoje):**
@@ -96,6 +96,7 @@ A série 7 do Banco Central teria sido a escolha por ser oficial e estável, mas
 - **RN-05 — Dia sem pregão não é linha.** A B3 devolve uma matriz dia × mês em que o dia sem pregão vem `null`; esses dias não geram registro.
 - **RN-06 — Número em pt-BR.** O valor chega como texto (`"86.083,92"`); o ponto é separador de milhar e a vírgula é o decimal.
 - **RN-07 — Ano parcial.** O ano corrente vem até o último pregão. Importar de novo mais tarde completa o ano.
+- **RN-08 — Série bruta, com cortes de base.** A tabela guarda o que a B3 publica, **sem ajuste**. Antes de 03/03/1997 o índice foi reescalado por fatores de 10 (e de 100 em 1983) quando se aproximava de 100 mil pontos, então a série tem **11 saltos** de cerca de −90% (−99% em 1983) de um pregão para o seguinte, que **não são quedas de mercado**: 04/10/1983, 03/12/1985, 30/08/1988, 18/04/1989, 15/01/1990, 29/05/1991, 22/01/1992, 27/01/1993, 30/08/1993, 10/02/1994 e 03/03/1997. Uma consulta por variação diária acima de 35% devolve 12 linhas; a outra é a alta de 36,1% em 04/02/1991, que não tem fator de 10 e não foi investigada. **Retornos que atravessam um corte são inválidos**; de 03/03/1997 em diante a série é contínua e dispensa ajuste. Não há descontinuidade na virada do Real, em 01/07/1994. Os cortes ficam registrados aqui, não corrigidos na tabela, para a tabela continuar sendo a fonte oficial.
 
 ## 5. Importação
 
@@ -144,10 +145,12 @@ O contrato é documentado em PT-BR no XML, como manda a regra do repositório; o
 ## 10. Próximos passos
 
 1. Query `indexQuotes` (RF-04).
-2. Importar o Ibovespa de 1994 a 1999. O índice anterior a julho de 1994 está em moeda de outra época, e o retorno entre esses valores não é comparável.
+2. Decidir como tratar os cortes de base (RN-08) para quem calcula retorno antes de 1997: uma tabela pequena com a data e o fator de cada corte, ou um ajuste na leitura. Hoje nada disso é necessário de 03/03/1997 em diante.
 3. Teste de contrato externo semanal contra o endpoint da B3 (§7).
 4. Refazer os relatórios de evento com o índice real em vez do `BOVA11`.
 
 ## 11. Primeira carga (2026-10-11)
 
 Importados os anos de 2000 a 2026 pela mutation: **6.638 pregões**, de 03/01/2000 a 09/10/2026. A validação cruzada prevista (o número de pregões do índice em um ano deve bater com os dias distintos de `daily_quotes` do mercado à vista) **fechou sem nenhuma diferença**: todos os 27 anos coincidem, e não há pregão de um lado sem o outro. Conferidos pontos de controle: 05/10/2018 = 82.321,52; 08/10/2018 = 86.083,92; 29/10/2018 = 83.796,71.
+
+Na sequência foram importados os anos de **1968 a 1999**, e a tabela passou a ter **14.496 pregões**, de 02/01/1968 a 09/10/2026. A mesma validação cruzada fechou para 1994 (só de julho em diante, 124 pregões), 1995, 1996, 1997, 1998 e 1999. A carga fez aparecer os cortes de base descritos em RN-08.

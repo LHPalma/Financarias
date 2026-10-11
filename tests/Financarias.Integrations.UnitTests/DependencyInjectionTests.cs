@@ -2,6 +2,7 @@ using Financarias.Integrations.Addresses.ViaCep.Clients;
 using Financarias.Integrations.Anbima.Holidays.Clients;
 using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
+using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
 using Financarias.Integrations.MarketData.ErApi.Clients;
@@ -22,7 +23,8 @@ public class DependencyInjectionTests
         typeof(IInfoMoneyClient),
         typeof(IErApiClient),
         typeof(IAnpFuelClient),
-        typeof(IB3CotahistClient)
+        typeof(IB3CotahistClient),
+        typeof(IB3IndexClient)
     ];
 
     [Theory(DisplayName = "Resolve cada cliente Refit registrado sem chamar a rede")]
@@ -41,7 +43,8 @@ public class DependencyInjectionTests
                 ["Integrations:InfoMoney:BaseUrl"] = "https://www.infomoney.com.br",
                 ["Integrations:ErApi:BaseUrl"] = "https://open.er-api.com",
                 ["Integrations:Anp:BaseUrl"] = "https://www.gov.br/anp",
-                ["Integrations:B3:BaseUrl"] = "https://bvmf.bmfbovespa.com.br"
+                ["Integrations:B3:BaseUrl"] = "https://bvmf.bmfbovespa.com.br",
+                ["Integrations:B3Indexes:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br"
             })
             .Build();
 

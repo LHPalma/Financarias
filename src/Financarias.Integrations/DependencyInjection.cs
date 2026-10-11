@@ -4,6 +4,7 @@ using Financarias.Application.Holidays.Import;
 using Financarias.Application.MarketData.Cryptos.Gateways;
 using Financarias.Application.MarketData.ForeignExchange.Gateways;
 using Financarias.Application.MarketData.Fuel.Import;
+using Financarias.Application.MarketData.Indexes.Import;
 using Financarias.Application.MarketData.Stocks.Gateways;
 using Financarias.Application.MarketData.Stocks.Import;
 using Financarias.Application.News;
@@ -15,6 +16,8 @@ using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
 using Financarias.Integrations.MarketData.Anp.Fuel.Providers;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Providers;
+using Financarias.Integrations.MarketData.B3.Indexes.Clients;
+using Financarias.Integrations.MarketData.B3.Indexes.Providers;
 using Financarias.Integrations.MarketData.Brapi.Clients;
 using Financarias.Integrations.MarketData.Brapi.Providers;
 using Financarias.Integrations.MarketData.CoinGecko.Clients;
@@ -128,6 +131,20 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IDailyQuoteProvider, B3CotahistProvider>();
+
+        var b3IndexesBaseUrl = configuration["Integrations:B3Indexes:BaseUrl"]
+                               ?? throw new InvalidOperationException("Integrations:B3Indexes:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IB3IndexClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(b3IndexesBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(2);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<IIndexQuoteProvider, B3IndexQuoteProvider>();
 
         return services;
     }

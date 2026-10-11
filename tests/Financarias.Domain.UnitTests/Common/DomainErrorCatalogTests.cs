@@ -41,6 +41,7 @@ public class DomainErrorCatalogTests
             "inflation.date.unavailable",
             "inflation.series.invalid",
             "index.year.invalid",
+            "issuer.company.invalid",
             "indicator.year.invalid",
             "legalentity.cnpj.invalid",
             "stock.quote.invalid",

@@ -521,6 +521,11 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_daily_quotes");
 
+                    b.HasIndex("Isin")
+                        .HasDatabaseName("ix_daily_quotes_isin");
+
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Isin"), new[] { "varchar_pattern_ops" });
+
                     b.HasIndex("LegacyTicker")
                         .HasDatabaseName("ix_daily_quotes_legacy_ticker")
                         .HasFilter("legacy_ticker IS NOT NULL");

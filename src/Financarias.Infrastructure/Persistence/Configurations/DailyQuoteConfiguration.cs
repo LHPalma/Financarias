@@ -51,6 +51,9 @@ public sealed class DailyQuoteConfiguration : IEntityTypeConfiguration<DailyQuot
         builder.HasIndex(q => q.LegacyTicker)
             .HasFilter("legacy_ticker IS NOT NULL");
 
+        builder.HasIndex(q => q.Isin)
+            .HasOperators("varchar_pattern_ops");
+
         builder.ToTable(t =>
         {
             t.HasCheckConstraint(

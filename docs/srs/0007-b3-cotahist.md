@@ -2,7 +2,7 @@
 
 - **Data:** 2026-10-10
 - **Feature:** `MarketData/Stocks` (histórico) + `Integrations/MarketData/B3/Cotahist`
-- **Status:** **entregue, exceto a consulta.** O import inteiro (domínio, parser, provider, handler, persistência, caso de uso e a mutation `importDailyQuotes`) está em `main` (§8) e já carregou de 04/07/1994 a 09/10/2026, 6,19 milhões de linhas (§11). Falta a query de leitura `dailyQuotes` (RF-08). **Revisado em 2026-10-11** para refletir o que foi construído: onde este texto diverge da especificação original, vale o que está aqui, e as mudanças mais relevantes são a porta em dois passos (RF-02/03), o `@oneOf` no input (§6), a conversão de códigos antigos (RN-15 a RN-18) e a colisão de chave do `BIOM12F` (RN-02).
+- **Status:** **entregue, exceto a consulta.** O import inteiro (domínio, parser, provider, handler, persistência, caso de uso e a mutation `importDailyQuotes`) está em `main` (§8) e já carregou de 02/01/1986 a 09/10/2026, 7,21 milhões de linhas (§11), com as moedas antigas guardadas como publicadas e convertidas para reais na leitura (RN-15 e ADR-002). Falta a query de leitura `dailyQuotes` (RF-08). **Revisado em 2026-10-11** para refletir o que foi construído: onde este texto diverge da especificação original, vale o que está aqui, e as mudanças mais relevantes são a porta em dois passos (RF-02/03), o `@oneOf` no input (§6), a conversão de códigos antigos (RN-15 a RN-18) e a colisão de chave do `BIOM12F` (RN-02).
 - **Fonte externa:** [B3 — Cotações históricas](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/) (arquivo `COTAHIST_*.ZIP`, sem chave) e o [layout oficial](https://www.b3.com.br/data/files/33/67/B9/50/D84057102C784E47AC094EA8/SeriesHistoricas_Layout.pdf) (revisão de 2020).
 - **Base empírica:** o layout abaixo foi conferido em **2026-10-10** contra o arquivo real `COTAHIST_D09102026.ZIP` (19.213 registros `01`, 1.847 deles de mercado à vista). Onde o arquivo diverge do PDF, vale o arquivo (ver §7.3).
 
@@ -131,7 +131,7 @@ Query `dailyQuotes` com filtro, ordenação e paginação (por ticker e por inte
 | **RN-12** | **Read-before-write via repositório**, nunca pelo contrato de leitura (mesma regra do import da ANP). O handler carrega os agregados existentes por `IRepository<DailyQuote>` + `Specification` e muda pelos métodos do agregado. |
 | **RN-13** | **O trailer é conferência, não bloqueio.** Divergência entre o total do trailer e o número de registros `01` lidos gera log de aviso, e o import segue. Ver §7.3 sobre o que o trailer conta de fato. Na carga histórica os anos de 1998 e 2000 avisaram divergência de **2 registros** (104.973 declarados contra 104.971 lidos, e 153.684 contra 153.682); não foi investigada, e o import seguiu como previsto. |
 | **RN-14** | **Período inválido é erro de domínio.** Lança `stock.quoteperiod.invalid` o pedido que não é exatamente um dia, um mês ou um ano (nenhum campo, ou mais de um), o mês fora de 1–12 e o ano ou a data **anteriores a 1986**. A validação fica em `QuotePeriod` e no use case, antes de qualquer download. **Não há limite superior:** data futura ou ano futuro passam e terminam em `fileFound: false`, porque a B3 responde 404 (RN-06). (A versão original deste documento prometia recusar o futuro; não foi construído, e o 404 já dá o mesmo resultado sem erro.) |
-| **RN-15** | **Só entra linha em reais (`R$`).** Os arquivos anteriores a 01/07/1994 trazem cruzeiro e outras moedas da época; o parser pula todas (no arquivo de 1994, 57.108 linhas puladas de antes de julho). Por isso o banco começa em **julho de 1994**, e os anuais de 1986 a 1993, que existem na B3, não foram importados. |
+| **RN-15** | **A moeda da linha tem de ser a que vigorava no dia; o valor é gravado na moeda original.** Os arquivos anteriores a 01/07/1994 trazem Cruzeiro, Cruzado, Cruzado Novo e Cruzeiro Real (`CR$`, `CZ$`, `NCZ$`). O parser aceita a linha se o código do campo `MODREF` for o da moeda daquela **data** (`BrazilianCurrency.IsLegalTenderOn`) e pula a que divergir, como `R$` em 1993 ou `CR$` em 2026. A moeda vem da data porque `CR$` é ambíguo: nomeia três moedas de valores diferentes. Os preços e volumes ficam **como a B3 publica**, e a conversão para reais é feita na leitura, por `BrazilianCurrency.ToReais(valor, data)` ou pela função `to_reais(valor, data)` do Postgres. A decisão e as alternativas rejeitadas estão no `docs/adr/0002-original-currency-converted-on-read.md`. O primeiro pregão do banco passou a ser **02/01/1986**. |
 | **RN-16** | **Códigos antigos são convertidos para o ticker atual.** Até 1997 os códigos tinham três letras e um espaço de preenchimento (`PET 4`, `BBD 4`, `ITA 4`, `BB  4`). O parser reconstrói o ticker pela **raiz do ISIN** (posições 3–6, depois do `BR`) mais o dígito da classe: `PET 4` → `PETR4`. Em 1995 as duas formas convivem no mesmo arquivo: de janeiro a abril o campo do ISIN traz o código antigo da empresa (`ACESACON`) em vez do ISIN, e a raiz são as **quatro primeiras posições**. Em 1995, 79% das linhas derivam para um ticker que existe em 1999–2001; o resto são empresas que já tinham saído, e o código derivado continua com formato válido. **Limite conhecido:** quando a classe mudou de número, o derivado não existe depois (`VAL 4` → `VALE4`, que na série moderna é `VALE5`). Uma tabela de exceções não foi construída. |
 | **RN-17** | **O código original é guardado em `legacy_ticker`.** Coluna `varchar(12)` nula, preenchida só quando o parser converteu (RN-16 e RN-18), com índice parcial `WHERE legacy_ticker IS NOT NULL`. Serve para pesquisar uma cotação pelo nome com que ela era negociada. Fica nula para todo código moderno. |
 | **RN-18** | **Sufixo duplo do fracionário é reduzido.** Em 2000 o mercado fracionário traz `PETR4FF`, com dois `F`; o `Ticker` aceita só um. O parser reduz para `PETR4F` e guarda o original em `legacy_ticker`. Eram 47.076 linhas de 2000, puladas até esta regra existir. |
@@ -311,13 +311,43 @@ Um sexto ponto é de contexto, não de divergência: a revisão do PDF é de 202
 
 | Item | Valor |
 |---|---|
-| Período | **04/07/1994 a 09/10/2026**, do primeiro pregão em reais ao último (RN-15: antes disso a moeda não é o real) |
-| Linhas em `daily_quotes` | **6.187.251**: 4.040.834 à vista e 2.146.417 fracionárias, em 7.904 tickers distintos |
-| Tamanho | 1.431 MB: 913 MB de dados e 518 MB de índices |
-| Pregões por ano | de 245 a 251 em cada ano completo; 124 em 1994 (só o segundo semestre) e 194 em 2026 (até 09/10) |
-| Linhas com `legacy_ticker` | **418.346** (371.270 dos códigos de três letras de 1994 a 1998, mais 47.076 do sufixo `FF` de 2000) |
-| Lacunas | nenhum mês ausente de janeiro de 2002 a outubro de 2026 (conferido mês a mês); de 1994 a 2001 a conferência foi por ano, contra o número de pregões do índice |
+| Período | **02/01/1986 a 09/10/2026** (RN-15: as moedas anteriores a 07/1994 ficam como publicadas) |
+| Linhas em `daily_quotes` | **7.212.134**: 4.736.245 à vista e 2.475.889 fracionárias |
+| Tamanho | 1.725 MB: 1.062 MB de dados e 663 MB de índices |
+| Pregões por ano | de 240 a 251 em cada ano completo; 1994 tem 245 (toda a metade em Cruzeiro Real mais a metade em reais) e 2026 tem 194 (até 09/10) |
+| Linhas com `legacy_ticker` | **1.443.225**: os códigos de três letras de 1986 a 1998, mais 47.076 do sufixo `FF` de 2000 |
+| Lacunas | nenhum mês ausente de janeiro de 2002 a outubro de 2026 (conferido mês a mês); de 1986 a 2001 a conferência foi por ano |
 
-**Validação cruzada.** O número de pregões de cada ano em `daily_quotes` coincide, ano a ano, com o número de pregões do Ibovespa oficial em `index_quotes` (`docs/srs/0008-ibovespa-index.md`, §11), de julho de 1994 em diante: nenhum pregão de um lado sem o outro.
+**Validação cruzada.** O número de pregões de cada ano em `daily_quotes` coincide, ano a ano, com o número de pregões do Ibovespa oficial em `index_quotes` (`docs/srs/0008-ibovespa-index.md`, §11), de julho de 1994 em diante: nenhum pregão de um lado sem o outro. A conferência não foi refeita para 1986 a junho de 1994.
+
+### 11.1 Moedas antigas (1986 a junho de 1994)
+
+| Arquivo | Linhas gravadas | Puladas |
+|---|---|---|
+| 1986 | 128.723 | 3.776 |
+| 1987 | 116.077 | 2.820 |
+| 1988 | 156.513 | 3.067 |
+| 1989 | 144.904 | 2.877 |
+| 1990 | 105.028 | 1.557 |
+| 1991 | 105.538 | 1.548 |
+| 1992 | 100.436 | 1.337 |
+| 1993 | 110.618 | 449 |
+| 1994 (só o que faltava, em Cruzeiro Real) | 57.046 | 62 |
+
+Total de **1.024.883** linhas novas, e o banco passou de 6.187.251 para 7.212.134.
+
+**A conversão foi conferida nos dados**, e não só nas leis. Em cada troca de moeda, a mediana entre os papéis negociados nos dois pregões em volta da troca da razão entre o preço por ação em reais (`to_reais(close) ÷ quote_factor`) é de ordem 1, sem nenhum salto de 1000×:
+
+| Troca | Pregões | Papéis | Razão (mediana) |
+|---|---|---|---|
+| Cruzeiro → Cruzado | 27/02 → 04/03/1986 | 266 | 1,200 |
+| Cruzado → Cruzado Novo | 13/01 → 18/01/1989 | 194 | 0,968 |
+| Cruzado Novo → Cruzeiro | 13/03 → 19/03/1990 | 2 | 0,714 |
+| Cruzeiro → Cruzeiro Real | 30/07 → 02/08/1993 | 181 | 0,998 |
+| Cruzeiro Real → Real | 30/06 → 04/07/1994 | 136 | 1,002 |
+
+As duas últimas, com mais papéis e quartis apertados (0,964 a 1,000 e 0,974 a 1,038), são a prova mais forte. As três primeiras trazem a variação dos planos econômicos (o Cruzado, o Verão e o Collor): a bolsa ficou fechada alguns dias em volta de cada um e a de 1990 tem só dois papéis negociados nos dois lados, então a evidência ali é de ordem de grandeza, não de precisão.
+
+**Saltos que a conversão não explica.** Em oito papéis líquidos de 1986 a 1994, 20 variações diárias foram maiores que 2,5× ou menores que 0,4× depois da conversão, sem desdobramento, grupamento ou bonificação correspondente na B3. Alguns são de ~1000× e caem no mesmo dia em papéis diferentes (BBDC4 e ITAU4 em 01/06/1987), o que aponta para mudança de lote de cotação sem o `quote_factor` acompanhar, e os demais para eventos que a B3 não publica para o período. **Antes de usar a série de 1986 a 1994 em retorno, ela precisa da auditoria de saltos** do slice de preço ajustado (`docs/srs/0010-corporate-events.md`, RN-08).
 
 **Como foi carregado.** Por anual onde o mensal não existe (os anos 1990 e 2000, e alguns dos 2010) e por mensal nos anos recentes. Reimportar é seguro (RN-11), e foi o que corrigiu 1998 e 2000 depois de cada ajuste do parser: o contador `quotesCreated` mostrou o que o ajuste destravou. Os totais acima são contagens exatas feitas em 2026-10-11, depois da última importação.

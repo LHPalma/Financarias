@@ -37,6 +37,7 @@ public class DomainErrorCatalogTests
             "holiday.name.required",
             "index.quote.invalid",
             "index.year.invalid",
+            "indicator.year.invalid",
             "legalentity.cnpj.invalid",
             "stock.quote.invalid",
             "stock.quoteperiod.invalid",

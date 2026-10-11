@@ -2,7 +2,7 @@
 
 - **Data:** 2026-10-11
 - **Feature:** `MarketData/CorporateEvents` + `Integrations/MarketData/B3/CorporateEvents`
-- **Status:** **especificado; implementação em curso.** Os requisitos entregues são marcados em §8.
+- **Status:** **entregue, exceto a série ajustada e a consulta.** Domínio, tabela `corporate_events`, importação por emissor e a mutation `importCorporateEvents` estão em `main` (§8). A carga de todos os emissores está em §10. Falta a query de leitura e, principalmente, a série de preço ajustada (§9).
 - **Fonte externa:** dois endpoints do proxy de empresas listadas do site da B3 (`sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/`), sem chave e **sem contrato publicado** (mesmo caso do Ibovespa, `0008`).
 - **Base empírica:** os dois endpoints foram comparados em **2026-10-11** com a Petrobras e com cinco empresas que saíram da bolsa, e os fatores de desdobramento e grupamento foram conferidos contra o preço real em `daily_quotes`.
 
@@ -96,7 +96,7 @@ Em 1996 o provento vem como `5,1471` com `ratio` de 1000, ou seja, por **lote de
 ## 5. Regras de negócio
 
 - **RN-01 — Fontes.** Proventos em dinheiro pelo endpoint 1; desdobramento, grupamento e bonificação pelo endpoint 2.
-- **RN-02 — Sem chave natural.** Parcelas idênticas coexistem (§3.2), então a tabela **não tem índice único** sobre o evento. A importação de um emissor **substitui o conjunto**: lê o que existe, compara com o que a B3 publica, e só troca se for diferente. Reimportar o mesmo conjunto não altera nada.
+- **RN-02 — Sem chave natural.** Parcelas idênticas coexistem (§3.2), então a tabela **não tem índice único** sobre o evento. A importação de um emissor **substitui o conjunto** por uma diferença de multiconjunto: cada evento publicado pareia com um evento gravado igual, o que sobra do publicado entra e o que sobra do gravado sai. Duas parcelas publicadas e uma gravada criam uma; uma publicada e duas gravadas removem uma. Reimportar o mesmo conjunto não altera nada. A gravação são dois passos (primeiro entram os novos, depois saem os antigos), então uma falha entre os dois deixa um excesso que a reimportação seguinte corrige, e nunca deixa o emissor vazio.
 - **RN-03 — Valor como publicado.** Guardam-se `Amount` e `PerShares` crus. O valor por ação é derivado.
 - **RN-04 — Tipo.** `DIVIDENDO` → `CashDividend`; `JRS CAP PROPRIO` → `InterestOnEquity`; `RENDIMENTO` → `Yield`; `DESDOBRAMENTO` → `StockSplit`; `GRUPAMENTO` → `ReverseSplit`; `BONIFICACAO` → `BonusShares`. Um rótulo desconhecido é **pulado, contado e logado**, não derruba a importação.
 - **RN-05 — Sentinelas.** `01/01/1900` e `31/12/9999` viram nulo.
@@ -106,10 +106,14 @@ Em 1996 o provento vem como `5,1471` com `ratio` de 1000, ou seja, por **lote de
 - **RN-09 — Fator cru.** `Factor` é guardado como publicado. A leitura por tipo (§3) só é aplicada na série ajustada.
 - **RN-10 — JCP bruto.** A B3 publica o valor bruto; o imposto na fonte é tratado na leitura.
 - **RN-11 — `Yield` fora do ajuste.** O `RENDIMENTO` é guardado, mas não entra no ajuste de preço: o preço cai pelo provento declarado, e a correção é paga depois, como juros.
+- **RN-12 — A B3 vazia não apaga o gravado.** Se a B3 não devolve evento algum para o emissor (resposta ilegível, 404 ou empresa que ela não conhece), o que já estava gravado é mantido. Sem essa regra, uma falha passageira apagaria o histórico de um emissor.
+- **RN-13 — Classe da ação pelo ISIN.** O endpoint 2 não diz a classe dos eventos sobre ações, mas o ISIN diz: depois de `BR`, quatro letras do emissor, `ACN` e dois caracteres de classe. `OR` é `ON`, `PR` é `PN`, e `PA`, `PB`, `PC`… são `PNA`, `PNB`, `PNC`…
+- **RN-14 — Data de pagamento não preenchida.** O endpoint 2 só a traz para 2025 e 2026, e é o 1 que carrega os proventos. Nesta versão `PaymentDate` fica nulo; cruzá-la com o endpoint 1 é possível e ficou para depois.
+- **RN-15 — Precisão.** Valor e fator são arredondados para 10 casas, a precisão gravada, senão um valor com mais casas nunca igualaria o gravado e a reimportação refaria o emissor toda vez.
 
-## 6. Superfície GraphQL (planejada)
+## 6. Superfície GraphQL
 
-`importCorporateEvents(input: { issuer: "PETR" })` importa um emissor; sem `issuer`, percorre todos. É uma operação pesada (milhares de chamadas à B3) e hoje não exigiria autenticação, como as demais importações.
+**Entregue:** `importCorporateEvents(input: { issuer: "PETR" })` importa **um emissor** e devolve `issuerFound`, `namesTried`, `eventsRead`, `eventsSkipped`, `eventsCreated` e `eventsRemoved`. Erro de domínio: `corporate.event.invalid` para um código que não são quatro letras ou dígitos em maiúsculas. Emissor sem cotações importadas devolve `issuerFound` falso, sem erro e sem chamar a B3. Não percorre todos os emissores numa só chamada, porque seriam milhares de chamadas à B3 dentro de uma requisição; a carga completa é um laço fora da API (§10). Hoje não exige autenticação, como as demais importações.
 
 ## 7. Riscos
 
@@ -123,10 +127,26 @@ Em 1996 o provento vem como `5,1471` com `ratio` de 1000, ou seja, por **lote de
 
 | Requisito / regra | Commit |
 |---|---|
-| (a preencher conforme os commits saírem) | |
+| Este documento | `8c4b9c0` |
+| Agregado `CorporateEvent`, tipos e erro `corporate.event.invalid` | `98e3935` |
+| Tabela `corporate_events`, sem índice único, `CHECK` por tipo — RN-02 | `7dc92eb` |
+| Índice em `daily_quotes.isin` (busca por prefixo e junção futura) | `b817f52` |
+| Caso de uso, diferença de multiconjunto, nomes pelo ISIN — RN-02, RN-07, RN-12 | `1b67e62` |
+| Provider da B3, tipos, classe pelo ISIN, precisão — RN-01, RN-03 a RN-05, RN-13, RN-15 | `ebc4d04` |
+| Mutation `importCorporateEvents` | `d190e08` |
+
+## 8.1 Cobertura de testes
+
+- `CorporateEventTests` (domínio): campos exigidos por tipo, valor por ação com lote de mil, código do emissor.
+- `CorporateEventPersistenceTests` (Postgres real): ida e volta, parcelas idênticas coexistem e o `CHECK`, inclusive o caso de dinheiro sem valor, que um `CHECK` com comparação de nulo deixaria passar.
+- `ImportCorporateEventsCommandHandlerTests` e `ImportCorporateEventsUseCaseTests` (aplicação): criação, igualdade, diferença, multiconjunto nos dois sentidos, B3 vazia mantém o gravado, emissor desconhecido ou inválido.
+- `CorporateEventsImportTests` (Postgres real): a busca dos nomes pelo prefixo do ISIN e o diff passando pelo EF.
+- `B3CorporateEventProviderTests` (integrações): os três proventos, lote de mil, sentinela, paginação com vários nomes, payload em base64, registros pulados, arredondamento, eventos sobre ações com a classe pelo ISIN, resposta ilegível e erro de servidor.
+- `ImportCorporateEventsMutationTests` (funcional): contadores, idempotência, emissor sem cotações, código inválido e documentação no schema.
 
 ## 9. Próximos passos
 
-1. Domínio, persistência, importação e mutation, em commits separados.
-2. Carga de todos os emissores, com relatório de cobertura (emissor, nomes tentados, eventos achados).
-3. Série de preço ajustada, validada pela auditoria de saltos, e retorno total.
+1. **Série de preço ajustada e retorno total**, o motivo deste slice. Combina os eventos com o `quote_factor` (§3), valida o fator de cada tipo em escala e traz a auditoria de saltos da RN-08.
+2. Query de leitura dos eventos.
+3. Preencher `PaymentDate` cruzando com o endpoint 2 (RN-14).
+4. Teste de contrato externo semanal contra os dois endpoints.

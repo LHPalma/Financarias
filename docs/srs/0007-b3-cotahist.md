@@ -2,7 +2,7 @@
 
 - **Data:** 2026-10-10
 - **Feature:** `MarketData/Stocks` (histórico) + `Integrations/MarketData/B3/Cotahist`
-- **Status:** **entregue, exceto a consulta.** O import inteiro (domínio, parser, provider, handler, persistência, caso de uso e a mutation `importDailyQuotes`) está em `main` (§8) e já carregou de julho de 1994 a outubro de 2026 (§11). Falta a query de leitura `dailyQuotes` (RF-08). **Revisado em 2026-10-11** para refletir o que foi construído: onde este texto diverge da especificação original, vale o que está aqui, e as mudanças mais relevantes são a porta em dois passos (RF-02/03), o `@oneOf` no input (§6), a conversão de códigos antigos (RN-15 a RN-18) e a colisão de chave do `BIOM12F` (RN-02).
+- **Status:** **entregue, exceto a consulta.** O import inteiro (domínio, parser, provider, handler, persistência, caso de uso e a mutation `importDailyQuotes`) está em `main` (§8) e já carregou de 04/07/1994 a 09/10/2026, 6,19 milhões de linhas (§11). Falta a query de leitura `dailyQuotes` (RF-08). **Revisado em 2026-10-11** para refletir o que foi construído: onde este texto diverge da especificação original, vale o que está aqui, e as mudanças mais relevantes são a porta em dois passos (RF-02/03), o `@oneOf` no input (§6), a conversão de códigos antigos (RN-15 a RN-18) e a colisão de chave do `BIOM12F` (RN-02).
 - **Fonte externa:** [B3 — Cotações históricas](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/) (arquivo `COTAHIST_*.ZIP`, sem chave) e o [layout oficial](https://www.b3.com.br/data/files/33/67/B9/50/D84057102C784E47AC094EA8/SeriesHistoricas_Layout.pdf) (revisão de 2020).
 - **Base empírica:** o layout abaixo foi conferido em **2026-10-10** contra o arquivo real `COTAHIST_D09102026.ZIP` (19.213 registros `01`, 1.847 deles de mercado à vista). Onde o arquivo diverge do PDF, vale o arquivo (ver §7.3).
 
@@ -311,13 +311,13 @@ Um sexto ponto é de contexto, não de divergência: a revisão do PDF é de 202
 
 | Item | Valor |
 |---|---|
-| Período | **01/07/1994 a 09/10/2026** (RN-15: antes disso a moeda não é o real) |
-| Linhas em `daily_quotes` | ≈ 6,1 milhões (estimativa do catálogo do Postgres) |
-| Tamanho | ≈ 1,4 GB: 913 MB de dados e 518 MB de índices |
+| Período | **04/07/1994 a 09/10/2026**, do primeiro pregão em reais ao último (RN-15: antes disso a moeda não é o real) |
+| Linhas em `daily_quotes` | **6.187.251**: 4.040.834 à vista e 2.146.417 fracionárias, em 7.904 tickers distintos |
+| Tamanho | 1.431 MB: 913 MB de dados e 518 MB de índices |
 | Pregões por ano | de 245 a 251 em cada ano completo; 124 em 1994 (só o segundo semestre) e 194 em 2026 (até 09/10) |
-| Linhas com `legacy_ticker` | ≈ 418 mil (371.270 dos códigos de três letras de 1994 a 1998, mais 47.076 do sufixo `FF` de 2000), em pouco mais de mil tickers atuais |
+| Linhas com `legacy_ticker` | **418.346** (371.270 dos códigos de três letras de 1994 a 1998, mais 47.076 do sufixo `FF` de 2000) |
 | Lacunas | nenhum mês ausente de janeiro de 2002 a outubro de 2026 (conferido mês a mês); de 1994 a 2001 a conferência foi por ano, contra o número de pregões do índice |
 
 **Validação cruzada.** O número de pregões de cada ano em `daily_quotes` coincide, ano a ano, com o número de pregões do Ibovespa oficial em `index_quotes` (`docs/srs/0008-ibovespa-index.md`, §11), de julho de 1994 em diante: nenhum pregão de um lado sem o outro.
 
-**Como foi carregado.** Por anual onde o mensal não existe (os anos 1990 e 2000, e alguns dos 2010) e por mensal nos anos recentes. Reimportar é seguro (RN-11), e foi o que corrigiu 1998 e 2000 depois de cada ajuste do parser: o contador `quotesCreated` mostrou o que o ajuste destravou. Os números exatos de linhas, de tickers distintos e de linhas com `legacy_ticker` são aproximados; uma contagem completa não foi refeita nesta revisão.
+**Como foi carregado.** Por anual onde o mensal não existe (os anos 1990 e 2000, e alguns dos 2010) e por mensal nos anos recentes. Reimportar é seguro (RN-11), e foi o que corrigiu 1998 e 2000 depois de cada ajuste do parser: o contador `quotesCreated` mostrou o que o ajuste destravou. Os totais acima são contagens exatas feitas em 2026-10-11, depois da última importação.

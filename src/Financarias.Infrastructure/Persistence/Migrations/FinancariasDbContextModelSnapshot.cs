@@ -269,6 +269,49 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.ToTable("fuel_stations", (string)null);
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.Indexes.IndexQuote", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("CloseValue")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("close_value");
+
+                    b.Property<string>("MarketIndex")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("market_index");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<DateOnly>("TradingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("trading_date");
+
+                    b.HasKey("Id")
+                        .HasName("pk_index_quotes");
+
+                    b.HasIndex("MarketIndex", "TradingDate")
+                        .IsUnique()
+                        .HasDatabaseName("ix_index_quotes_market_index_trading_date");
+
+                    b.ToTable("index_quotes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_index_quotes_close_value_positive", "close_value > 0");
+                        });
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Stocks.DailyQuote", b =>
                 {
                     b.Property<long>("Id")

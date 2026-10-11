@@ -40,6 +40,9 @@ using Financarias.Application.MarketData.Indicators.Commands;
 using Financarias.Application.MarketData.Indicators.Import;
 using Financarias.Application.MarketData.Indicators.UseCases;
 using Financarias.Application.MarketData.Inflation.Commands;
+using Financarias.Application.MarketData.Issuers.Commands;
+using Financarias.Application.MarketData.Issuers.Import;
+using Financarias.Application.MarketData.Issuers.UseCases;
 using Financarias.Application.MarketData.Inflation.UseCases;
 using Financarias.Application.MarketData.Stocks.Commands;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
@@ -131,6 +134,10 @@ public static class DependencyInjection
         services
             .AddScoped<ICommandHandler<RebuildInflationLevelsCommand, InflationLevelsRebuildResult>,
                 RebuildInflationLevelsCommandHandler>();
+
+        services.AddScoped<IImportIssuersUseCase, ImportIssuersUseCase>();
+        services
+            .AddScoped<ICommandHandler<ImportIssuersCommand, IssuerImportResult>, ImportIssuersCommandHandler>();
 
         services.AddScoped<IIssuerReads, IssuerReads>();
         services.AddScoped<IImportCorporateEventsUseCase, ImportCorporateEventsUseCase>();

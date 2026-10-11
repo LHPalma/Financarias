@@ -7,4 +7,10 @@ public interface IIssuerReads
     /// do ISIN (<c>BR</c> + código do emissor). Vazio quando o emissor não tem cotação.
     /// </summary>
     Task<IReadOnlyList<string>> TradingNamesAsync(string issuerCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Códigos dos emissores que aparecem nas cotações já importadas, achados pelo ISIN
+    /// (<c>BR</c> + quatro caracteres do emissor), em ordem alfabética.
+    /// </summary>
+    Task<IReadOnlyList<string>> IssuerCodesAsync(CancellationToken cancellationToken = default);
 }

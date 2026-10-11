@@ -18,4 +18,12 @@ public class IssuerReads(IApplicationDbContext dbContext) : IIssuerReads
             .OrderBy(name => name)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<string>> IssuerCodesAsync(CancellationToken cancellationToken = default) =>
+        await dbContext.DailyQuotes
+            .Where(quote => quote.Isin.StartsWith("BR"))
+            .Select(quote => quote.Isin.Substring(2, 4))
+            .Distinct()
+            .OrderBy(code => code)
+            .ToListAsync(cancellationToken);
 }

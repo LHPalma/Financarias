@@ -530,6 +530,64 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.ToTable("issuers", (string)null);
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.SearchInterest.SearchInterestPoint", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ComparisonKey")
+                        .IsRequired()
+                        .HasMaxLength(520)
+                        .HasColumnType("character varying(520)")
+                        .HasColumnName("comparison_key");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<string>("Geo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("geo");
+
+                    b.Property<DateOnly>("RangeEnd")
+                        .HasColumnType("date")
+                        .HasColumnName("range_end");
+
+                    b.Property<DateOnly>("RangeStart")
+                        .HasColumnType("date")
+                        .HasColumnName("range_start");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("term");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_search_interest_points");
+
+                    b.HasIndex("Geo", "ComparisonKey", "RangeStart", "RangeEnd", "Term", "Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_search_interest_points_geo_comparison_key_range_start_range");
+
+                    b.ToTable("search_interest_points", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_search_interest_points_day_in_range", "day BETWEEN range_start AND range_end");
+
+                            t.HasCheckConstraint("ck_search_interest_points_value_range", "value BETWEEN 0 AND 100");
+                        });
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Stocks.DailyQuote", b =>
                 {
                     b.Property<long>("Id")

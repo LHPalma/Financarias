@@ -8,6 +8,7 @@ using Financarias.Domain.MarketData.Indexes;
 using Financarias.Domain.MarketData.Inflation;
 using Financarias.Domain.MarketData.Indicators;
 using Financarias.Domain.MarketData.Issuers;
+using Financarias.Domain.MarketData.SearchInterest;
 using Financarias.Domain.MarketData.Stocks;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,8 @@ public class FinancariasDbContext(DbContextOptions<FinancariasDbContext> options
     public DbSet<InflationLevel> InflationLevels => Set<InflationLevel>();
 
     public DbSet<Issuer> Issuers => Set<Issuer>();
+
+    public DbSet<SearchInterestPoint> SearchInterestPoints => Set<SearchInterestPoint>();
 
     public DbSet<User> Users => Set<User>();
 

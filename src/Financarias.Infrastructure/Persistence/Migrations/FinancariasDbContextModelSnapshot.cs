@@ -345,6 +345,93 @@ namespace Financarias.Infrastructure.Persistence.Migrations
                     b.ToTable("fuel_stations", (string)null);
                 });
 
+            modelBuilder.Entity("Financarias.Domain.MarketData.IndexComposition.IndexCompositionItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AssetName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("asset_name");
+
+                    b.Property<DateOnly?>("BaseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("base_date");
+
+                    b.Property<decimal?>("Divisor")
+                        .HasPrecision(24, 8)
+                        .HasColumnType("numeric(24,8)")
+                        .HasColumnName("divisor");
+
+                    b.Property<string>("IndexCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("index_code");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("Quadrimester")
+                        .HasColumnType("integer")
+                        .HasColumnName("quadrimester");
+
+                    b.Property<string>("ShareType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("share_type");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("source_url");
+
+                    b.Property<long>("TheoreticalQuantity")
+                        .HasColumnType("bigint")
+                        .HasColumnName("theoretical_quantity");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("ticker");
+
+                    b.Property<decimal>("WeightPercent")
+                        .HasPrecision(7, 4)
+                        .HasColumnType("numeric(7,4)")
+                        .HasColumnName("weight_percent");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_index_composition_items");
+
+                    b.HasIndex("IndexCode", "Year", "Quadrimester", "Kind", "Ticker")
+                        .IsUnique()
+                        .HasDatabaseName("ix_index_composition_items_index_code_year_quadrimester_kind_t");
+
+                    b.ToTable("index_composition_items", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_index_composition_items_quadrimester", "quadrimester BETWEEN 1 AND 3");
+
+                            t.HasCheckConstraint("ck_index_composition_items_quantity_positive", "theoretical_quantity > 0");
+
+                            t.HasCheckConstraint("ck_index_composition_items_weight_range", "weight_percent BETWEEN 0 AND 100");
+                        });
+                });
+
             modelBuilder.Entity("Financarias.Domain.MarketData.Indexes.IndexQuote", b =>
                 {
                     b.Property<long>("Id")

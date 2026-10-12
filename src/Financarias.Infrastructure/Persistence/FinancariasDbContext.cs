@@ -7,6 +7,7 @@ using Financarias.Domain.MarketData.Fuel;
 using Financarias.Domain.MarketData.Indexes;
 using Financarias.Domain.MarketData.Inflation;
 using Financarias.Domain.MarketData.Indicators;
+using Financarias.Domain.MarketData.IndexComposition;
 using Financarias.Domain.MarketData.Issuers;
 using Financarias.Domain.MarketData.SearchInterest;
 using Financarias.Domain.MarketData.Stocks;
@@ -26,6 +27,8 @@ public class FinancariasDbContext(DbContextOptions<FinancariasDbContext> options
     public DbSet<DailyQuote> DailyQuotes => Set<DailyQuote>();
 
     public DbSet<IndexQuote> IndexQuotes => Set<IndexQuote>();
+
+    public DbSet<IndexCompositionItem> IndexCompositionItems => Set<IndexCompositionItem>();
 
     public DbSet<IndicatorValue> IndicatorValues => Set<IndicatorValue>();
 

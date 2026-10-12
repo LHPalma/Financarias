@@ -12,6 +12,7 @@ public static class MarketDataErrors
     public const string IndicatorYearInvalid = "indicator.year.invalid";
     public const string CorporateEventInvalid = "corporate.event.invalid";
     public const string IssuerInvalid = "issuer.company.invalid";
+    public const string SearchInterestInvalid = "searchinterest.point.invalid";
     public const string CurrencyDateUnsupported = "currency.date.unsupported";
     public const string InflationSeriesInvalid = "inflation.series.invalid";
     public const string InflationDateUnavailable = "inflation.date.unavailable";
@@ -39,6 +40,9 @@ public static class MarketDataErrors
 
     public static DomainValidationException Issuer(string reason) =>
         new(IssuerInvalid, $"Issuer not valid: {reason}.");
+
+    public static DomainValidationException SearchInterest(string reason) =>
+        new(SearchInterestInvalid, $"Search interest not valid: {reason}.");
 
     public static DomainValidationException InflationSeries(string reason) =>
         new(InflationSeriesInvalid, $"Inflation series not valid: {reason}.");

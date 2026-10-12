@@ -44,6 +44,7 @@ public class DomainErrorCatalogTests
             "issuer.company.invalid",
             "indicator.year.invalid",
             "legalentity.cnpj.invalid",
+            "searchinterest.point.invalid",
             "stock.quote.invalid",
             "stock.quoteperiod.invalid",
             "stock.ticker.invalid",

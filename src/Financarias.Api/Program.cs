@@ -62,6 +62,7 @@ builder.Services
     .AddTypeExtension<FuelMutations>()
     .AddTypeExtension<StockMutations>()
     .AddTypeExtension<IndexMutations>()
+    .AddTypeExtension<IndexCompositionMutations>()
     .AddTypeExtension<IndicatorMutations>()
     .AddTypeExtension<InflationMutations>()
     .AddTypeExtension<IssuerMutations>()

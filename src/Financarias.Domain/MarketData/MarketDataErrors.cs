@@ -13,6 +13,8 @@ public static class MarketDataErrors
     public const string CorporateEventInvalid = "corporate.event.invalid";
     public const string IssuerInvalid = "issuer.company.invalid";
     public const string SearchInterestInvalid = "searchinterest.point.invalid";
+    public const string IndexCompositionInvalid = "indexcomposition.item.invalid";
+    public const string IndexCompositionSourceInvalid = "indexcomposition.source.invalid";
     public const string CurrencyDateUnsupported = "currency.date.unsupported";
     public const string InflationSeriesInvalid = "inflation.series.invalid";
     public const string InflationDateUnavailable = "inflation.date.unavailable";
@@ -43,6 +45,12 @@ public static class MarketDataErrors
 
     public static DomainValidationException SearchInterest(string reason) =>
         new(SearchInterestInvalid, $"Search interest not valid: {reason}.");
+
+    public static DomainValidationException IndexComposition(string reason) =>
+        new(IndexCompositionInvalid, $"Index composition not valid: {reason}.");
+
+    public static DomainValidationException IndexCompositionSource(string url) =>
+        new(IndexCompositionSourceInvalid, $"Index composition source not valid: '{url}' is not a https://www.b3.com.br/data/files/ address.");
 
     public static DomainValidationException InflationSeries(string reason) =>
         new(InflationSeriesInvalid, $"Inflation series not valid: {reason}.");

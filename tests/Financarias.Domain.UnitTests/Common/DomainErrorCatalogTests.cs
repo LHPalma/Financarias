@@ -38,6 +38,8 @@ public class DomainErrorCatalogTests
             "fuel.station.name.required",
             "holiday.name.required",
             "index.quote.invalid",
+            "indexcomposition.item.invalid",
+            "indexcomposition.source.invalid",
             "inflation.date.unavailable",
             "inflation.series.invalid",
             "index.year.invalid",

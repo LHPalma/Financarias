@@ -9,6 +9,7 @@ using Financarias.Integrations.MarketData.B3.Issuers.Clients;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
 using Financarias.Integrations.MarketData.Cboe.Clients;
 using Financarias.Integrations.MarketData.Eia.Clients;
+using Financarias.Integrations.MarketData.Google.Trends.Clients;
 using Financarias.Integrations.MarketData.Fed.Clients;
 using Financarias.Integrations.MarketData.WorldBank.Clients;
 using Financarias.Integrations.MarketData.Brapi.Clients;
@@ -35,6 +36,7 @@ public class DependencyInjectionTests
         typeof(IB3IndexClient),
         typeof(IBcbSgsClient),
         typeof(IEiaClient),
+        typeof(IGoogleTrendsClient),
         typeof(ICboeClient),
         typeof(IFedDataDownloadClient),
         typeof(IWorldBankPageClient),
@@ -64,6 +66,7 @@ public class DependencyInjectionTests
                 ["Integrations:B3Indexes:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br",
                 ["Integrations:Bcb:BaseUrl"] = "https://api.bcb.gov.br",
                 ["Integrations:Eia:BaseUrl"] = "https://www.eia.gov",
+                ["Integrations:GoogleTrends:BaseUrl"] = "https://trends.google.com",
                 ["Integrations:Cboe:BaseUrl"] = "https://cdn.cboe.com",
                 ["Integrations:Fed:BaseUrl"] = "https://www.federalreserve.gov",
                 ["Integrations:WorldBank:PageBaseUrl"] = "https://www.worldbank.org",

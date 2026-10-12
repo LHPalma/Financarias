@@ -1,3 +1,4 @@
+using System.Net;
 ﻿using System.Net.Http.Headers;
 using Financarias.Application.Addresses;
 using Financarias.Application.Holidays.Import;
@@ -23,6 +24,7 @@ using Financarias.Integrations.MarketData.B3.CorporateEvents.Providers;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Providers;
 using Financarias.Application.MarketData.Issuers.Import;
+using Financarias.Application.MarketData.SearchInterest.Import;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.B3.Issuers.Clients;
 using Financarias.Integrations.MarketData.B3.Issuers.Providers;
@@ -33,6 +35,8 @@ using Financarias.Integrations.MarketData.Bcb.Sgs.Providers;
 using Financarias.Integrations.MarketData.Cboe.Clients;
 using Financarias.Integrations.MarketData.Cboe.Providers;
 using Financarias.Integrations.MarketData.Eia.Clients;
+using Financarias.Integrations.MarketData.Google.Trends.Clients;
+using Financarias.Integrations.MarketData.Google.Trends.Providers;
 using Financarias.Integrations.MarketData.Eia.Providers;
 using Financarias.Integrations.MarketData.Fed.Clients;
 using Financarias.Integrations.MarketData.Fed.Providers;
@@ -230,6 +234,21 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IIssuerProvider, B3IssuerProvider>();
+
+        var googleTrendsBaseUrl = configuration["Integrations:GoogleTrends:BaseUrl"]
+                                  ?? throw new InvalidOperationException("Integrations:GoogleTrends:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IGoogleTrendsClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(googleTrendsBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(1);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { UseCookies = true, CookieContainer = new CookieContainer() });
+
+        services.AddScoped<ISearchInterestProvider, GoogleTrendsSearchInterestProvider>();
 
         return services;
     }

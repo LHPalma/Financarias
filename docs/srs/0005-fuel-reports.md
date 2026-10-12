@@ -1,16 +1,18 @@
-# SRS — Relatórios de combustível (paridade etanol×gasolina e posto mais barato)
+# SRS — Relatórios de combustível (paridade, posto mais barato, preço médio por bandeira, estado e município)
+
+- **Status:** **entregue, quatro dos cinco relatórios.** Revisado em 2026-10-11: o texto original cobria só os dois primeiros e ficou desatualizado quando o comparador por bandeira e o ranking entraram (2026-09-05). Falta a evolução temporal.
 
 ## 1. Introdução
 
 ### 1.1 Propósito
 
-Documenta os dois primeiros relatórios construídos sobre a base de dados importada pelo slice de ANP (`docs/srs/0002-fuel-anp.md`), cujo §10 já apontava "Relatórios" como o objetivo real do módulo, ainda não construído. Esta SRS cobre a entrega de dois dos cinco relatórios listados lá: **paridade etanol×gasolina** e **posto mais barato**.
+Documenta os relatórios construídos sobre a base de dados importada pelo slice de ANP (`docs/srs/0002-fuel-anp.md`), cujo §10 já apontava "Relatórios" como o objetivo real do módulo. Cobre quatro dos cinco relatórios listados lá: **paridade etanol×gasolina**, **posto mais barato**, **preço médio por bandeira** e **ranking por estado e por município**.
 
 ### 1.2 Escopo
 
-Dentro: leitura sobre `FuelPrice`/`FuelStation` já persistidos; nenhuma escrita nova. Os dois relatórios usam estilos de leitura diferentes — decisão registrada porque cada um exigiu um caminho técnico distinto (ver §2.1).
+Dentro: leitura sobre `FuelPrice`/`FuelStation` já persistidos; nenhuma escrita nova. Os relatórios usam três estilos de leitura diferentes — decisão registrada porque cada um exigiu um caminho técnico distinto (ver §2.1).
 
-Fora: os outros três relatórios do §10 da SRS de ANP (comparador por bandeira, ranking por município/estado, evolução temporal) — candidatos a Style B "de verdade", mesma técnica do posto mais barato, mas não implementados aqui. Também fora: `FuelStationType` curado (hoje a navegação `fuelStation` no schema é gerada por convenção, sem `BindFieldsExplicitly`) e `FilterInputType`/`SortInputType` dedicados.
+Fora: **evolução temporal** do preço (precisa decidir a granularidade, por coleta ou por mês, antes de repetir o padrão) e `FilterInputType`/`SortInputType` dedicados. O `FuelStationType` curado, que o texto original listava como ausente, existe desde `bb25f16` (só descrições, vinculação implícita).
 
 ### 1.3 Definições
 
@@ -62,6 +64,14 @@ O cliente deve poder filtrar `cheapestFuelPrices` por campos do posto (ex.: `fue
 
 `cheapestFuelPrices` deve suportar paginação por cursor (`first`/`after`, padrão Relay), pra não obrigar o cliente a buscar a lista inteira.
 
+### RF-05 — Preço médio por bandeira e estado
+
+Dado um produto e, opcionalmente, um estado, o sistema deve devolver o preço médio de venda por par (bandeira, UF), sobre a última coleta de cada posto, com a quantidade de postos considerados. Resposta: `BrandAveragePriceResult { brand, state, averagePrice, stationCount }`.
+
+### RF-06 — Ranking de preço médio por estado e por município
+
+Dado um produto, o sistema deve devolver o preço médio por estado (`StateAveragePriceResult`) e por município (`MunicipalityAveragePriceResult`, com UF e filtro opcional por estado), ambos com a quantidade de postos. O cliente ordena por `averagePrice` para obter o ranking.
+
 ## 4. Regras de negócio
 
 ### RN-01 — Regra dos 70%
@@ -79,6 +89,14 @@ Verificado contra Postgres real via Testcontainers, não assumido: encadear um s
 
 Nos dois relatórios, quando um posto tem mais de uma coleta de um produto (semanas diferentes), só a de `CollectedOn` mais recente entra no resultado — coletas antigas nunca aparecem, mesmo que o preço seja mais vantajoso.
 
+### RN-05 — Agregado com `where`/`order` não traduz: materializa-se o resultado já agregado
+
+Os três relatórios de média (RF-05, RF-06) usam `GroupBy` com `Average` e `Count`. O `GroupBy` em si traduz para SQL, mas o `[UseFiltering]`/`[UseSorting]` do Hot Chocolate reconstrói a projeção para chegar ao campo pedido, e o EF não consegue recompor a agregação por trás de um membro já projetado: lança `could not be translated` **em tempo de execução, só quando o cliente ordena ou filtra por `averagePrice` ou `stationCount`** (uma listagem simples parece funcionar). Foi o que aconteceu com `averagePricesByBrand` no dia em que entrou (`da5a3cf`).
+
+A correção é materializar o agregado dentro de `IFuelReads` (`ToListAsync` + `.AsQueryable()`) antes de devolver. É seguro aqui porque o resultado depois do `GroupBy` por bandeira, estado ou município tem de dezenas a poucas centenas de linhas, ao contrário da dívida do TDR-001, que materializa a tabela crua. O custo pesado (varredura e agregação) continua sendo SQL; só o resultado pequeno vai para a memória. A alternativa de empurrar o agregado como coluna comum (`FromSqlInterpolated` contra uma entidade sem chave) foi considerada e **rejeitada por ora**: SQL escrito à mão por relatório, um conceito novo (entidade sem chave) e perda do reaproveitamento da subquery correlacionada, por um ganho que não aparece nesse volume.
+
+Depurar isso exige `IncludeExceptionDetails` ligado (`Program.cs`, só em `Development`): sem ele o cliente vê só `Unexpected Execution Error` e o servidor não registra nada.
+
 ### RN-04 — Filtro do Hot Chocolate não é automaticamente curado pelo `ObjectType`
 
 `BindFieldsExplicitly()` no `FuelPriceType` controla o que o cliente **vê** na saída — não controla, por si só, o que ele pode **filtrar**. O `[UseFiltering]` do Hot Chocolate infere filtros a partir do tipo `.NET` (a entidade `FuelPrice`), não do `ObjectType` curado. Se algum campo precisar ficar de fora do filtro sem estar já fora da saída, é necessário um `FilterInputType<FuelPrice>` próprio, com seu próprio `BindFieldsExplicitly()`, aplicado via `[UseFiltering<T>]` — não implementado neste slice (nenhum campo de `FuelPrice` precisou dessa restrição ainda).
@@ -95,7 +113,14 @@ Nos dois relatórios, quando um posto tem mais de uma coleta de um produto (sema
 type Query {
   ethanolGasolineParity: EthanolGasolineParityResultConnection!
   cheapestFuelPrices(product: FuelProduct!): FuelPriceConnection!
+  averagePricesByBrand(product: FuelProduct!, state: String): BrandAveragePriceResultConnection!
+  averagePriceByState(product: FuelProduct!): StateAveragePriceResultConnection!
+  averagePriceByMunicipality(product: FuelProduct!, state: String): MunicipalityAveragePriceResultConnection!
 }
+
+type BrandAveragePriceResult { brand: String!  state: String!  averagePrice: Decimal!  stationCount: Int! }
+type StateAveragePriceResult { state: String!  averagePrice: Decimal!  stationCount: Int! }
+type MunicipalityAveragePriceResult { municipality: String!  state: String!  averagePrice: Decimal!  stationCount: Int! }
 
 type EthanolGasolineParityResult {
   stationName: String!
@@ -133,6 +158,10 @@ type FuelPrice {
 | `3f2e060` | TDR-001 — registra a dívida da variante em memória |
 | `f7a1f84` | `cheapestFuelPrices` via Style B de verdade (`IFuelReads` + `FuelPriceType`) — RF-02, RF-03, RN-02 (subquery-`MAX`), RNF-01 |
 | `ed2eabf` | Paginação (`[UsePaging]`) em `cheapestFuelPrices` — RF-04, RNF-03 |
+| `d889f4b` | `averagePricesByBrand` (`GroupBy` por bandeira e estado) — RF-05 |
+| `da5a3cf` | Materializa o agregado antes de filtrar e ordenar — RN-05 |
+| `cfcde1d` | `averagePriceByState` e `averagePriceByMunicipality` — RF-06 |
+| `bb25f16` | Contrato GraphQL documentado em PT-BR e `FuelStationType` |
 
 ## 8. Cobertura de testes
 
@@ -142,12 +171,14 @@ type FuelPrice {
 | Application (`FindEthanolGasolineParityUseCaseTests`) | UseCase delega ao handler e devolve o resultado, sem lógica própria. |
 | Infraestrutura — Testcontainers (`FindEthanolGasolineParityQueryHandlerTests`) | Compara postos com os dois produtos; exclui posto com só um produto; usa a coleta mais recente quando há mais de uma — contra Postgres real, depois da correção de RN-02. |
 | Infraestrutura — Testcontainers (`FuelReadsTests`) | `LatestPricesByProduct` devolve a coleta mais recente de cada posto, sem misturar postos nem produtos — valida a subquery-`MAX` contra SQL real. |
+| Infraestrutura — Testcontainers (`FuelReadsAveragePriceByBrandTests`, `FuelReadsRankingTests`) | Média por bandeira e UF, por estado e por município sobre a última coleta de cada posto, com a contagem de postos e o filtro por estado — contra Postgres real. |
 | Manual (GraphQL/Nitro) | `where`/`order`/`first` testados de ponta a ponta em `cheapestFuelPrices`, incluindo filtro em navegação (`fuelStation.state`) — sem teste automatizado ainda (ver §9). |
 
 ## 9. Follow-ups conhecidos
 
 - **TDR-001 em aberto** — `ethanolGasolineParity` continua filtrando em memória; `[UsePaging]` (2026-09-06, motivado pelo consumo desse campo no app mobile) reduz o payload devolvido, não o custo de leitura no banco. Ver `docs/debt/0001-ethanol-gasoline-parity-in-memory-filter.md` pra critério de quando resolver.
 - **Sem teste automatizado do `cheapestFuelPrices` fim a fim** — a validação de `where`/`order`/`first`/filtro em navegação foi manual (GraphQL/Nitro). Um `Api.FunctionalTests` cobrindo isso ficou pendente.
-- **`FuelStationType` não existe** — a navegação `fuelStation` em `FuelPriceType` é exposta por convenção (Hot Chocolate reflete `FuelStation` inteiro), sem `BindFieldsExplicitly` própria. Os VOs `Cnpj`/`Cep` nunca foram expostos em GraphQL neste projeto; se algum campo deles aparecer de um jeito estranho no schema, é hora de criar o tipo curado.
-- **Outros 3 relatórios do §10 da SRS de ANP** — comparador por bandeira, ranking por município/estado, evolução temporal. Mesma técnica de `cheapestFuelPrices` (subquery-`MAX` + `IFuelReads`), sem o problema de RN-02.
+- **`FuelStationType` existe, mas só com descrições** (`bb25f16`): vinculação implícita, sem `BindFieldsExplicitly`. Os VOs `Cnpj`/`Cep` seguem sem exposição em GraphQL.
+- **Evolução temporal**, o último relatório do §10 da SRS de ANP. Precisa decidir a granularidade (por coleta? por mês?) antes de repetir o padrão `IFuelReads` com agregado materializado (RN-05).
+- **Sem teste funcional dos relatórios de média**, que são cobertos só no nível de `FuelReads` contra Postgres. A quebra de RN-05 só apareceu com um cliente real ordenando por campo agregado, e um teste funcional com `order: { averagePrice: ASC }` teria pegado.
 - **`FilterInputType`/`SortInputType` dedicados** — não precisou ainda (RN-04), mas é o próximo passo se algum campo de `FuelPrice` precisar ficar de fora do filtro sem sair da saída.

@@ -44,6 +44,9 @@ using Financarias.Application.MarketData.Issuers.Commands;
 using Financarias.Application.MarketData.Issuers.Import;
 using Financarias.Application.MarketData.Issuers.UseCases;
 using Financarias.Application.MarketData.Inflation.UseCases;
+using Financarias.Application.MarketData.SearchInterest.Commands;
+using Financarias.Application.MarketData.SearchInterest.Import;
+using Financarias.Application.MarketData.SearchInterest.UseCases;
 using Financarias.Application.MarketData.Stocks.Commands;
 using Financarias.Application.MarketData.Stocks.DTOs.Results;
 using Financarias.Application.MarketData.Stocks.Import;
@@ -138,6 +141,11 @@ public static class DependencyInjection
         services.AddScoped<IImportIssuersUseCase, ImportIssuersUseCase>();
         services
             .AddScoped<ICommandHandler<ImportIssuersCommand, IssuerImportResult>, ImportIssuersCommandHandler>();
+
+        services.AddScoped<IImportSearchInterestUseCase, ImportSearchInterestUseCase>();
+        services
+            .AddScoped<ICommandHandler<ImportSearchInterestCommand, SearchInterestImportResult>,
+                ImportSearchInterestCommandHandler>();
 
         services.AddScoped<IIssuerReads, IssuerReads>();
         services.AddScoped<IImportCorporateEventsUseCase, ImportCorporateEventsUseCase>();

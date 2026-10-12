@@ -4,6 +4,7 @@ using Financarias.Integrations.BrasilApi.Holidays.Clients;
 using Financarias.Integrations.MarketData.Anp.Fuel.Clients;
 using Financarias.Integrations.MarketData.B3.CorporateEvents.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
+using Financarias.Integrations.MarketData.B3.IndexComposition.Clients;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.B3.Issuers.Clients;
 using Financarias.Integrations.MarketData.Bcb.Sgs.Clients;
@@ -34,6 +35,7 @@ public class DependencyInjectionTests
         typeof(IAnpFuelClient),
         typeof(IB3CotahistClient),
         typeof(IB3IndexClient),
+        typeof(IB3DataFileClient),
         typeof(IBcbSgsClient),
         typeof(IEiaClient),
         typeof(IGoogleTrendsClient),
@@ -64,6 +66,7 @@ public class DependencyInjectionTests
                 ["Integrations:Anp:BaseUrl"] = "https://www.gov.br/anp",
                 ["Integrations:B3:BaseUrl"] = "https://bvmf.bmfbovespa.com.br",
                 ["Integrations:B3Indexes:BaseUrl"] = "https://sistemaswebb3-listados.b3.com.br",
+                ["Integrations:B3Files:BaseUrl"] = "https://www.b3.com.br",
                 ["Integrations:Bcb:BaseUrl"] = "https://api.bcb.gov.br",
                 ["Integrations:Eia:BaseUrl"] = "https://www.eia.gov",
                 ["Integrations:GoogleTrends:BaseUrl"] = "https://trends.google.com",

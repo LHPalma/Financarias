@@ -6,6 +6,7 @@ using Financarias.Application.MarketData.Cryptos.Gateways;
 using Financarias.Application.MarketData.ForeignExchange.Gateways;
 using Financarias.Application.MarketData.CorporateEvents.Import;
 using Financarias.Application.MarketData.Fuel.Import;
+using Financarias.Application.MarketData.IndexComposition.Import;
 using Financarias.Application.MarketData.Indexes.Import;
 using Financarias.Application.MarketData.Indicators.Import;
 using Financarias.Application.MarketData.Stocks.Gateways;
@@ -25,6 +26,8 @@ using Financarias.Integrations.MarketData.B3.Cotahist.Clients;
 using Financarias.Integrations.MarketData.B3.Cotahist.Providers;
 using Financarias.Application.MarketData.Issuers.Import;
 using Financarias.Application.MarketData.SearchInterest.Import;
+using Financarias.Integrations.MarketData.B3.IndexComposition.Clients;
+using Financarias.Integrations.MarketData.B3.IndexComposition.Providers;
 using Financarias.Integrations.MarketData.B3.Indexes.Clients;
 using Financarias.Integrations.MarketData.B3.Issuers.Clients;
 using Financarias.Integrations.MarketData.B3.Issuers.Providers;
@@ -183,6 +186,20 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IIndexQuoteProvider, B3IndexQuoteProvider>();
+
+        var b3FilesBaseUrl = configuration["Integrations:B3Files:BaseUrl"]
+                             ?? throw new InvalidOperationException("Integrations:B3Files:BaseUrl not configured.");
+
+        services
+            .AddRefitClient<IB3DataFileClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(b3FilesBaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(2);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Financarias/1.0");
+            });
+
+        services.AddScoped<IIndexCompositionProvider, B3IndexCompositionProvider>();
 
         var bcbBaseUrl = configuration["Integrations:Bcb:BaseUrl"]
                          ?? throw new InvalidOperationException("Integrations:Bcb:BaseUrl not configured.");
